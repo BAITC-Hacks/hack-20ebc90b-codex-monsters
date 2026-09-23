@@ -288,7 +288,8 @@ def render_scenarios(client: Any) -> None:
         payload = {"base_run_id": run_id, "overrides": overrides, "seed": seed}
         payload["idempotency_key"] = _request_key("scenario", payload)
         try:
-            result = client.create_scenario(payload)
+            with st.spinner("Запускаем сравнение вариантов…"):
+                result = client.create_scenario(payload)
             if not result.get("scenario_id"):
                 st.error("API не вернул scenario_id. Результат неизвестен; повтор использует тот же request key.")
                 return
@@ -411,7 +412,8 @@ def _render_sources_and_import(client: Any) -> None:
                     st.warning("Результат предыдущей отправки неизвестен. POST /snapshots не имеет согласованного idempotency key; повтор не отправлен. Укажите подтверждённый job ID или snapshot ID.")
                 else:
                     try:
-                        result = client.create_snapshot(payload)
+                        with st.spinner("Передаём данные на подготовку…"):
+                            result = client.create_snapshot(payload)
                         if result.get("job_id"):
                             submissions[signature] = result
                             st.session_state["_secondary_snapshot_job"] = result["job_id"]
@@ -448,7 +450,8 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
             payload = {"snapshot_id": snapshot["snapshot_id"], "policy": policy}
             payload["idempotency_key"] = _request_key("planning", payload)
             try:
-                result = client.create_planning_run(payload)
+                with st.spinner("Запускаем расчёт заказа…"):
+                    result = client.create_planning_run(payload)
                 if not result.get("run_id"):
                     st.error("API не вернул run ID. Повтор с прежними параметрами использует тот же request key.")
                 else:

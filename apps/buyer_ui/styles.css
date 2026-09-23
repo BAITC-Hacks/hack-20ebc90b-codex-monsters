@@ -1,0 +1,80 @@
+/* Native Streamlit widgets keep their keyboard behavior and selected theme.
+   Warm neutrals, flat surfaces, and immediate feedback suit a daily work tool. */
+.stApp {
+  /* Streamlit sets color-scheme on this element; light-dark follows its menu. */
+  --buyer-ink: light-dark(#242321, #faf8f4);
+  --buyer-canvas: light-dark(#fbfaf7, #131416);
+  --buyer-line: light-dark(#dedbd5, #363735);
+  --buyer-soft: light-dark(#f1efea, #242524);
+  --buyer-muted: light-dark(#625f5a, #b8b4ad);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--buyer-canvas);
+}
+
+.stMainBlockContainer {max-width: 1120px; padding-top: 4rem; padding-bottom: 3rem;}
+.stMain {background: var(--buyer-canvas);}
+.stMain h1 {font-size: 2rem; font-weight: 650; letter-spacing: -0.025em; line-height: 1.2;}
+.stMain h3 {font-size: 1.25rem; font-weight: 600; line-height: 1.35;}
+[data-testid="stMetricValue"] {font-size: 1.65rem; font-variant-numeric: tabular-nums;}
+[data-testid="stCaptionContainer"] {color: var(--buyer-muted);}
+[data-testid="stForm"] {border: 0; padding: 0;}
+
+/* A single-choice navigation strip. Keep the native radio inputs available to
+   assistive technology; only their decorative circles are hidden. */
+.st-key-workspace_navigation [role="radiogroup"] {width: 100%; gap: 0; border-bottom: 1px solid var(--buyer-line);}
+.st-key-workspace_navigation [data-testid="stRadioOption"] {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  border-bottom: 2px solid transparent;
+}
+.st-key-workspace_navigation [data-testid="stRadioOption"] > div > div:first-child {display: none;}
+.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:checked) {
+  border-bottom-color: var(--buyer-ink);
+  background: var(--buyer-soft);
+}
+.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:checked) p {font-weight: 600;}
+.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:focus-visible) {
+  outline: 2px solid var(--buyer-ink);
+  outline-offset: -4px;
+}
+
+/* Details are subordinate to the table and next action, not another stack of cards. */
+[data-testid="stExpander"] > details {
+  border: 0;
+  border-bottom: 1px solid var(--buyer-line);
+  border-radius: 0;
+}
+[data-testid="stExpander"] summary {min-height: 2.75rem;}
+.stMain button[kind], .stMain [data-testid="stDownloadButton"] a {
+  min-height: 2.75rem;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.stMain button[kind^="primary"], .stMain [data-testid="stDownloadButton"] a[kind^="primary"] {
+  color: var(--buyer-canvas);
+  background: var(--buyer-ink);
+  border-color: var(--buyer-ink);
+}
+.stMain button[kind^="primary"] p {color: inherit;}
+.stMain button[kind]:disabled {opacity: 0.5; cursor: not-allowed;}
+.stMain button[kind]:focus-visible, .stMain summary:focus-visible {
+  outline: 2px solid var(--buyer-ink);
+  outline-offset: 3px;
+}
+.stMain input, .stMain textarea {font-size: 1rem; caret-color: var(--buyer-ink);}
+.stMain ::selection {background: var(--buyer-ink); color: var(--buyer-canvas);}
+
+@media (hover: hover) and (pointer: fine) {
+  .st-key-workspace_navigation [data-testid="stRadioOption"]:hover {background: var(--buyer-soft);}
+  .stMain button[kind]:not(:disabled):hover {border-color: var(--buyer-ink);}
+}
+/* Press feedback is instantaneous. No motion delays repeated procurement work. */
+.stMain button[kind]:not(:disabled):active {filter: brightness(0.85);}
+@media (prefers-reduced-motion: reduce) {
+  .st-key-workspace_navigation *, .stMain button[kind] {transition: none; animation: none;}
+}
+@media (max-width: 640px) {
+  .stMainBlockContainer {padding-inline: 1rem;}
+  .st-key-workspace_navigation [data-testid="stRadioOption"] {padding-inline: 0.75rem;}
+}

@@ -51,14 +51,7 @@ def main():
     if not st.get_option("client.disableDataExport"):
         st.set_option("client.disableDataExport", True)
         st.rerun()
-    # Small layout adjustments only; native widgets retain focus and responsive behavior.
-    st.html("""<style>
-      .stMainBlockContainer {max-width: 1120px; padding-top: 4rem; padding-bottom: 3rem;}
-      h1 {font-size: 2rem !important;} h3 {font-size: 1.25rem !important;}
-      [data-testid="stMetricValue"] {font-size: 1.65rem; font-variant-numeric: tabular-nums;}
-      [data-testid="stForm"] {border: 0; padding: 0;}
-      @media (max-width: 640px) {.stMainBlockContainer {padding-top: 4rem;}}
-    </style>""")
+    st.html("<style>" + Path(__file__).with_name("styles.css").read_text(encoding="utf-8") + "</style>")
     _remember_drafts()
     title, settings = st.columns([4, 1], vertical_alignment="center")
     title.title("Закупки")
@@ -112,8 +105,9 @@ def main():
     pending_page = st.session_state.pop("pending_page", None)
     if pending_page:
         st.session_state["workspace_page"] = pending_page
-    page = st.radio("Раздел", ["Заказы", "Что, если…", "Данные"], horizontal=True,
-                    key="workspace_page", label_visibility="collapsed")
+    with st.container(key="workspace_navigation"):
+        page = st.radio("Раздел", ["Заказы", "Что, если…", "Данные"], horizontal=True,
+                        key="workspace_page", label_visibility="collapsed")
     # Render only the current task; background screens must not make requests or reset forms.
     if page == "Заказы":
         render_orders(client)

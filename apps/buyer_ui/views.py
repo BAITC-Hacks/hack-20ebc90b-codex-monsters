@@ -52,7 +52,7 @@ def _ledger(line):
     unit = format_uom(line["purchase_uom"])
     st.write(f"**{line['name']}**")
     st.caption(f"Артикул {line['sku_id']}. Рекомендовано {format_decimal(line.get('recommended_purchase_qty'))} {unit}; "
-               f"в заказе {format_decimal(line.get('selected_purchase_qty'))} {unit}.")
+               f"в заказе {format_decimal(line.get('selected_purchase_qty'))} {unit}".rstrip(".") + ".")
     if line.get("projected_stockout_date"):
         st.warning(f"Ожидаемый дефицит с {format_date(line['projected_stockout_date'])}.")
     with st.expander("Почему столько рекомендовано"):
@@ -101,7 +101,7 @@ def _edit(client, proposal, line):
     draft = drafts.setdefault(identity, {"version": proposal["version"], "qty": line["selected_purchase_qty"], "reason": ""})
     draft.setdefault("original_qty", line["selected_purchase_qty"])
     st.write("**Изменить количество**")
-    st.caption(f"Минимум: {format_decimal(line.get('moq_purchase'))} {format_uom(line['purchase_uom'])}. "
+    st.caption(f"Минимум: {format_decimal(line.get('moq_purchase'))} {format_uom(line['purchase_uom']).rstrip('.')}. "
                f"Шаг упаковки: {format_decimal(line.get('pack_multiple_purchase'))}. Ноль — не заказывать.")
     uncertain = draft.get("uncertain", False)
     stale = draft["version"] != proposal["version"]
@@ -136,10 +136,11 @@ def _edit(client, proposal, line):
             st.error("Укажите количество десятичной строкой, например 120 или 2.5.")
             return
         try:
-            updated = client.edit_proposal(proposal["proposal_id"], {
-                "expected_version": draft["version"],
-                "edits": [{"line_id": line["line_id"], "purchase_qty": qty}], "reason": reason,
-            })
+            with st.spinner("Сохраняем количество…"):
+                updated = client.edit_proposal(proposal["proposal_id"], {
+                    "expected_version": draft["version"],
+                    "edits": [{"line_id": line["line_id"], "purchase_qty": qty}], "reason": reason,
+                })
             # Only the server response determines status and quantities.
             draft["version"] = updated["version"]
             draft["original_qty"] = qty
@@ -156,7 +157,8 @@ def _prepare_download(client, reviewed):
     identity = (reviewed["proposal_id"], reviewed["version"], reviewed["content_hash"])
     keys = st.session_state.setdefault("export_keys", {})
     request_key = keys.setdefault(identity, str(uuid4()))
-    result = export_reviewed(client, reviewed, request_key)
+    with st.spinner("Готовим утверждённый CSV…"):
+        result = export_reviewed(client, reviewed, request_key)
     st.session_state["order_download"] = {"identity": identity, "data": result.data, "filename": result.filename}
 
 
@@ -190,7 +192,8 @@ def _approval_and_export(client, proposal, reviewed):
         if st.button("Утвердить и подготовить CSV", type="primary", disabled=not caps.get("can_approve", False),
                      key=f"approve:{proposal['proposal_id']}"):
             try:
-                approve_reviewed(client, reviewed)
+                with st.spinner("Утверждаем проверенную версию…"):
+                    approve_reviewed(client, reviewed)
             except ApiError as error:
                 show_api_error(error)
             else:
