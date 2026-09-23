@@ -1,0 +1,771 @@
+{
+  "as_of": "2026-09-22T23:59:59+00:00",
+  "cases": [
+    {
+      "acceptance_ids": [
+        "AT-05"
+      ],
+      "case_id": "B-E01",
+      "checks": [
+        {
+          "actual": "suspected_project / pending",
+          "check_id": "blind_spike",
+          "description": "100-кратная разовая продажа требует проверки закупщика",
+          "expected": "suspected_project / pending",
+          "passed": true
+        },
+        {
+          "actual": "840",
+          "check_id": "regular_preserved",
+          "description": "Дополнительная проектная продажа не меняет регулярные 840 единиц",
+          "expected": 840,
+          "passed": true
+        },
+        {
+          "actual": {
+            "b_daily": 10.0,
+            "recent_mean": 45.714285714285715
+          },
+          "check_id": "same_window_baseline",
+          "description": "Обычный прогноз остаётся 10; среднее включает добавленные 1000/28",
+          "expected": {
+            "b_daily": 10,
+            "recent_mean": 45.714285714285715
+          },
+          "passed": true
+        }
+      ],
+      "description": "84 полных дня по 10 штук; в день 71 добавлена отдельная продажа 1000 штук. Оба метода используют последние 28 дней. Подозрение не означает подтверждённый проект.",
+      "forecast_warnings": [
+        "SEASONALITY_NEUTRAL_UNVERIFIED",
+        "GROWTH_NOT_SUSTAINED_NEUTRAL"
+      ],
+      "input_event_count": 85,
+      "limitations": [
+        "Confidence — эвристический балл детектора, не откалиброванная вероятность подтверждённого проекта."
+      ],
+      "reason_codes": [
+        "one_off_robust_size_outlier",
+        "zero_mad_ratio_fallback",
+        "document_quantity_concentrated"
+      ],
+      "recent_window": {
+        "days": 28,
+        "end_exclusive": "2026-09-23",
+        "start": "2026-08-26"
+      },
+      "status": "PASS",
+      "tables": [
+        {
+          "columns": [
+            "scenario",
+            "recent_mean_28",
+            "b_forecast"
+          ],
+          "rows": [
+            {
+              "b_forecast": 10.0,
+              "recent_mean_28": 10,
+              "scenario": "Без дополнительной продажи"
+            },
+            {
+              "b_forecast": 10.0,
+              "recent_mean_28": 45.714285714285715,
+              "scenario": "С дополнительной продажей 1000"
+            }
+          ],
+          "title": "Прогноз регулярного спроса, штуки/день"
+        },
+        {
+          "columns": [
+            "observed_qty",
+            "regular_qty",
+            "uncertain_qty",
+            "label",
+            "review_status",
+            "confidence"
+          ],
+          "rows": [
+            {
+              "confidence": 0.9,
+              "label": "suspected_project",
+              "observed_qty": "1000",
+              "regular_qty": "0",
+              "review_status": "pending",
+              "uncertain_qty": "1000"
+            }
+          ],
+          "title": "Разовая продажа не удалена"
+        }
+      ],
+      "title": "Разовый проект: среднее завышает регулярную потребность"
+    },
+    {
+      "acceptance_ids": [
+        "AT-05"
+      ],
+      "case_id": "B-E02",
+      "checks": [
+        {
+          "actual": {
+            "regular_count": 3,
+            "regular_qty": "3000"
+          },
+          "check_id": "recurrence_1",
+          "description": "Повторные крупные продажи: классификатор сохраняет все продажи регулярными",
+          "expected": {
+            "regular_count": 3,
+            "regular_qty": 3000
+          },
+          "passed": true
+        },
+        {
+          "actual": {
+            "regular_count": 28,
+            "regular_qty": "840"
+          },
+          "check_id": "recurrence_2",
+          "description": "Устойчивый уровень 10 → 30: классификатор сохраняет все продажи регулярными",
+          "expected": {
+            "regular_count": 28,
+            "regular_qty": 840
+          },
+          "passed": true
+        },
+        {
+          "actual": 30.0,
+          "check_id": "new_level",
+          "description": "Последние 28 дней по 30 дают новый прогноз 30",
+          "expected": 30,
+          "passed": true
+        }
+      ],
+      "description": "Одинаковые крупные покупки в три разные даты сохраняются классификатором. Отдельный ряд повышается с 10 до 30 штук на последние 28 дней.",
+      "limitations": [
+        "Сохранение регулярной allocation не обещает переноса всей суммы в прогноз: robust baseline отдельно ограничивает редкие экстремальные значения. Повторные крупные заказы требуют проверки закупщиком."
+      ],
+      "status": "PASS",
+      "tables": [
+        {
+          "columns": [
+            "scenario",
+            "changed_days",
+            "observed_qty",
+            "regular_qty",
+            "project_or_uncertain_qty",
+            "b_next_day_forecast"
+          ],
+          "rows": [
+            {
+              "b_next_day_forecast": 11.785714285714286,
+              "changed_days": 3,
+              "observed_qty": "3000",
+              "project_or_uncertain_qty": "0",
+              "regular_qty": "3000",
+              "scenario": "Повторные крупные продажи"
+            },
+            {
+              "b_next_day_forecast": 30.0,
+              "changed_days": 28,
+              "observed_qty": "840",
+              "project_or_uncertain_qty": "0",
+              "regular_qty": "840",
+              "scenario": "Устойчивый уровень 10 → 30"
+            }
+          ],
+          "title": "Классификация и следующий прогноз"
+        }
+      ],
+      "title": "Контрпримеры: повторяемость и новый уровень"
+    },
+    {
+      "acceptance_ids": [
+        "AT-06"
+      ],
+      "case_id": "B-E03",
+      "checks": [
+        {
+          "actual": [
+            "10.0",
+            "10.0",
+            "10.0"
+          ],
+          "check_id": "positive_loss",
+          "description": "Во время известного отсутствия восстановление положительно",
+          "expected": "3 дня с положительной оценкой потерь",
+          "passed": true
+        },
+        {
+          "actual": {
+            "corrected": "0.0",
+            "lost": "0.0"
+          },
+          "check_id": "available_zero",
+          "description": "Нулевой спрос при наличии остаётся нулевым",
+          "expected": {
+            "corrected": 0,
+            "lost": 0
+          },
+          "passed": true
+        },
+        {
+          "actual": "одинаковый",
+          "check_id": "interval_union",
+          "description": "Дублированный интервал не удваивает оценку потерь",
+          "expected": "одинаковый дневной ряд",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check_id": "recovery_identity",
+          "description": "Исправленный спрос = наблюдаемый + оценка потерь",
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "description": "84 полностью покрытых дня; известное отсутствие на 3 дня. Контрольный ноль находится в доступном дне. Независимая скрытая истина передана только оценке качества.",
+      "diagnostics": {
+        "calendar": "UTC",
+        "history_end_exclusive": "2026-09-23",
+        "history_start": "2026-07-01",
+        "logs_available": true,
+        "overlap_method": "time_integrated_max_fraction",
+        "series": [
+          {
+            "estimated_lost_total": "30.0",
+            "known_estimated_lost_total": "30.0",
+            "observed_regular_total": "800",
+            "project_total": "0",
+            "recovery_status": "available",
+            "sku_id": "SYNTHETIC-B-001",
+            "uncertain_total": "0",
+            "unknown_recovery_days": 0,
+            "warehouse_id": "SYNTHETIC-WH"
+          }
+        ]
+      },
+      "limitations": [
+        "12/11/13 — синтетическая скрытая истина, не вход восстановления. Положительное восстановление не доказывает точную величину потерь. На реальных данных без stockout logs этот механизм недоступен."
+      ],
+      "recovery_metrics": {
+        "bias": -0.16666666666666666,
+        "mae": 2.0,
+        "n": 3,
+        "truth_source": "synthetic_latent_truth",
+        "undefined": {},
+        "uom": "piece",
+        "wape": 0.16666666666666666
+      },
+      "status": "PASS",
+      "tables": [
+        {
+          "columns": [
+            "date",
+            "observed_regular",
+            "estimated_lost",
+            "corrected_demand",
+            "unavailable_fraction",
+            "recovery_status",
+            "donor_count"
+          ],
+          "rows": [
+            {
+              "corrected_demand": "0.0",
+              "date": "2026-09-08",
+              "donor_count": 0,
+              "estimated_lost": "0.0",
+              "observed_regular": "0",
+              "recovery_status": "not_needed",
+              "unavailable_fraction": 0.0
+            },
+            {
+              "corrected_demand": "10.0",
+              "date": "2026-09-09",
+              "donor_count": 11,
+              "estimated_lost": "10.0",
+              "observed_regular": "0",
+              "recovery_status": "weekday_in_stock_mean",
+              "unavailable_fraction": 1.0
+            },
+            {
+              "corrected_demand": "10.0",
+              "date": "2026-09-10",
+              "donor_count": 11,
+              "estimated_lost": "10.0",
+              "observed_regular": "0",
+              "recovery_status": "weekday_in_stock_mean",
+              "unavailable_fraction": 1.0
+            },
+            {
+              "corrected_demand": "10.0",
+              "date": "2026-09-11",
+              "donor_count": 11,
+              "estimated_lost": "10.0",
+              "observed_regular": "0",
+              "recovery_status": "weekday_in_stock_mean",
+              "unavailable_fraction": 1.0
+            },
+            {
+              "corrected_demand": "10.0",
+              "date": "2026-09-12",
+              "donor_count": 0,
+              "estimated_lost": "0.0",
+              "observed_regular": "10",
+              "recovery_status": "not_needed",
+              "unavailable_fraction": 0.0
+            }
+          ],
+          "title": "Наблюдение → потери → исправленный спрос"
+        },
+        {
+          "columns": [
+            "date",
+            "latent_truth",
+            "recovered"
+          ],
+          "rows": [
+            {
+              "date": "2026-09-09",
+              "latent_truth": 12,
+              "recovered": 10.0
+            },
+            {
+              "date": "2026-09-10",
+              "latent_truth": 11,
+              "recovered": 10.0
+            },
+            {
+              "date": "2026-09-11",
+              "latent_truth": 13,
+              "recovered": 10.0
+            }
+          ],
+          "title": "Независимая оценка, штуки"
+        }
+      ],
+      "title": "Stockout: оценка скрытого спроса и нулевой контроль"
+    },
+    {
+      "acceptance_ids": [
+        "AT-04"
+      ],
+      "case_id": "B-E04",
+      "checks": [
+        {
+          "actual": [
+            10.0,
+            12.0,
+            13.200000000000001
+          ],
+          "check_id": "independent_components",
+          "description": "На 1 октября: 10 → 12 → 13.2; рост применяется один раз",
+          "expected": [
+            10,
+            12,
+            13.2
+          ],
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check_id": "additive_components",
+          "description": "На всех 90 датах baseline + seasonal + growth = mean",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            90,
+            90,
+            90
+          ],
+          "check_id": "complete_horizon",
+          "description": "90 последовательных дат без пропусков",
+          "expected": 90,
+          "passed": true
+        }
+      ],
+      "description": "Ровная история 10 штук/день. Фактор октября 1.2 и будущий рост replace 10% заданы синтетически; это проверка механизма, а не выученная рыночная сезонность.",
+      "forecast_warnings": [
+        "GROWTH_NOT_SUSTAINED_NEUTRAL"
+      ],
+      "status": "PASS",
+      "tables": [
+        {
+          "columns": [
+            "scenario",
+            "date",
+            "baseline_mean",
+            "seasonal_delta",
+            "growth_delta",
+            "mean"
+          ],
+          "rows": [
+            {
+              "baseline_mean": 10.0,
+              "date": "2026-10-01",
+              "growth_delta": 0.0,
+              "mean": 10.0,
+              "scenario": "Без поправок",
+              "seasonal_delta": 0.0
+            },
+            {
+              "baseline_mean": 10.0,
+              "date": "2026-10-01",
+              "growth_delta": 0.0,
+              "mean": 12.0,
+              "scenario": "Сезонный фактор 1.2",
+              "seasonal_delta": 2.0
+            },
+            {
+              "baseline_mean": 10.0,
+              "date": "2026-10-01",
+              "growth_delta": 1.200000000000001,
+              "mean": 13.200000000000001,
+              "scenario": "Сезонность + рост replace 10%",
+              "seasonal_delta": 2.0
+            }
+          ],
+          "title": "Компоненты на контрольную дату, штуки/день"
+        }
+      ],
+      "title": "Сезонность и рост объясняются отдельно",
+      "uncertainty": "Observed daily residuals excluding known stockouts; missing logs may hide censored demand; IID normal approximation; temporal dependence and achieved service unvalidated"
+    },
+    {
+      "acceptance_ids": [],
+      "case_id": "B-E05",
+      "checks": [
+        {
+          "actual": [
+            120,
+            150
+          ],
+          "check_id": "chronological_holdouts",
+          "description": "Два непересекающихся holdout по 14 дней после обучающего префикса",
+          "expected": [
+            120,
+            150
+          ],
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check_id": "train_only_scale",
+          "description": "Знаменатель MASE вычислен только на train",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check_id": "future_independence",
+          "description": "Изменение данных после обоих holdout не меняет результат",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": {
+            "bias": null,
+            "mase": null,
+            "wape": null
+          },
+          "check_id": "undefined_not_zero",
+          "description": "Нулевые знаменатели дают null, а не идеальную точность",
+          "expected": {
+            "bias": null,
+            "mase": null,
+            "wape": null
+          },
+          "passed": true
+        }
+      ],
+      "description": "Независимый ряд: y[i] = 10 + 0.05*i + 2*(i % 7 == 0), 180 дней от 2026-01-01. Forecaster получает только train-prefix. WAPE/bias — доли, не проценты; положительный bias означает завышение. Превосходство модели не является условием PASS.",
+      "evaluation": {
+        "horizon": 14,
+        "limitations": [
+          "Small descriptive backtest; no achieved service-level claim.",
+          "Overlapping holdouts, if any, are not independent samples."
+        ],
+        "method": "rolling_origin",
+        "origins": [
+          {
+            "actual": [
+              16.0,
+              16.05,
+              16.1,
+              16.15,
+              16.2,
+              16.25,
+              18.3,
+              16.35,
+              16.4,
+              16.45,
+              16.5,
+              16.55,
+              16.6,
+              18.65
+            ],
+            "holdout_end_exclusive": 134,
+            "models": {
+              "final_baseline": {
+                "metrics": {
+                  "bias": -0.03972875312108204,
+                  "bias_convention": "positive_is_overforecast",
+                  "mase": 1.0869319456832505,
+                  "mase_train_scale": 0.6071428571428571,
+                  "n": 14,
+                  "seasonal_period": 1,
+                  "train_n": 120,
+                  "undefined": {},
+                  "uom": "piece",
+                  "wape": 0.03972875312108204
+                },
+                "predicted": [
+                  15.611985227459911,
+                  15.66342510164779,
+                  15.715034464892817,
+                  15.766813875643887,
+                  15.818763894189912,
+                  15.870885082665902,
+                  15.923178005059054,
+                  15.975643227214833,
+                  16.02828131684311,
+                  16.0810928435243,
+                  16.13407837871552,
+                  16.1872384957568,
+                  16.240573769877248,
+                  16.294084778201285
+                ]
+              },
+              "recent_mean": {
+                "metrics": {
+                  "bias": -0.063212212427435,
+                  "bias_convention": "positive_is_overforecast",
+                  "mase": 1.7294117647058838,
+                  "mase_train_scale": 0.6071428571428571,
+                  "n": 14,
+                  "seasonal_period": 1,
+                  "train_n": 120,
+                  "undefined": {},
+                  "uom": "piece",
+                  "wape": 0.063212212427435
+                },
+                "predicted": [
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285,
+                  15.560714285714285
+                ]
+              }
+            },
+            "origin": 120,
+            "train_end_exclusive": 120,
+            "train_start": 0
+          },
+          {
+            "actual": [
+              17.5,
+              17.55,
+              17.6,
+              17.65,
+              19.7,
+              17.75,
+              17.8,
+              17.85,
+              17.9,
+              17.95,
+              18.0,
+              20.05,
+              18.1,
+              18.15
+            ],
+            "holdout_end_exclusive": 164,
+            "models": {
+              "final_baseline": {
+                "metrics": {
+                  "bias": -0.03651527634894622,
+                  "bias_convention": "positive_is_overforecast",
+                  "mase": 1.079850332229371,
+                  "mase_train_scale": 0.6124161073825504,
+                  "n": 14,
+                  "seasonal_period": 1,
+                  "train_n": 150,
+                  "undefined": {},
+                  "uom": "piece",
+                  "wape": 0.03651527634894622
+                },
+                "predicted": [
+                  17.111867942080234,
+                  17.16317497400337,
+                  17.21463584135427,
+                  17.266251005382358,
+                  17.318020928720042,
+                  17.369946075386835,
+                  17.42202691079355,
+                  17.47426390174646,
+                  17.52665751645146,
+                  17.57920822451829,
+                  17.631916496964735,
+                  17.684782806220852,
+                  17.737807626133186,
+                  17.790991431969044
+                ]
+              },
+              "recent_mean": {
+                "metrics": {
+                  "bias": -0.05797673042792342,
+                  "bias_convention": "positive_is_overforecast",
+                  "mase": 1.7145205479452037,
+                  "mase_train_scale": 0.6124161073825504,
+                  "n": 14,
+                  "seasonal_period": 1,
+                  "train_n": 150,
+                  "undefined": {},
+                  "uom": "piece",
+                  "wape": 0.05797673042792342
+                },
+                "predicted": [
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287,
+                  17.060714285714287
+                ]
+              }
+            },
+            "origin": 150,
+            "train_end_exclusive": 150,
+            "train_start": 0
+          }
+        ],
+        "recent_window": 28,
+        "uom": "piece"
+      },
+      "limitations": [
+        "Два выбранных синтетических отрезка не оценивают реальную точность, денежную выгоду или достигнутый сервис. MASE > 1 означает, что ошибка на holdout выше средней lag-1 ошибки на train. Это не сравнение с отдельным наивным прогнозом на holdout; выигрыш над mean28 не отменяет этого."
+      ],
+      "status": "PASS",
+      "tables": [
+        {
+          "columns": [
+            "train_days",
+            "holdout_start",
+            "horizon_days",
+            "model",
+            "wape",
+            "bias",
+            "mase",
+            "mase_train_scale"
+          ],
+          "rows": [
+            {
+              "bias": -0.063212212427435,
+              "holdout_start": "2026-05-01",
+              "horizon_days": 14,
+              "mase": 1.7294117647058838,
+              "mase_train_scale": 0.6071428571428571,
+              "model": "recent_mean",
+              "train_days": 120,
+              "wape": 0.063212212427435
+            },
+            {
+              "bias": -0.03972875312108204,
+              "holdout_start": "2026-05-01",
+              "horizon_days": 14,
+              "mase": 1.0869319456832505,
+              "mase_train_scale": 0.6071428571428571,
+              "model": "final_baseline",
+              "train_days": 120,
+              "wape": 0.03972875312108204
+            },
+            {
+              "bias": -0.05797673042792342,
+              "holdout_start": "2026-05-31",
+              "horizon_days": 14,
+              "mase": 1.7145205479452037,
+              "mase_train_scale": 0.6124161073825504,
+              "model": "recent_mean",
+              "train_days": 150,
+              "wape": 0.05797673042792342
+            },
+            {
+              "bias": -0.03651527634894622,
+              "holdout_start": "2026-05-31",
+              "horizon_days": 14,
+              "mase": 1.079850332229371,
+              "mase_train_scale": 0.6124161073825504,
+              "model": "final_baseline",
+              "train_days": 150,
+              "wape": 0.03651527634894622
+            }
+          ],
+          "title": "Два rolling origins, одна UOM piece"
+        }
+      ],
+      "title": "Честное сравнение с простым средним",
+      "zero_denominator_control": {
+        "bias": null,
+        "bias_convention": "positive_is_overforecast",
+        "mase": null,
+        "mase_train_scale": 0.0,
+        "n": 2,
+        "seasonal_period": 1,
+        "train_n": 3,
+        "undefined": {
+          "bias": "zero_actual_total",
+          "mase": "zero_training_naive_error",
+          "wape": "zero_actual_total"
+        },
+        "uom": "piece",
+        "wape": null
+      }
+    }
+  ],
+  "criteria": [
+    "ценность",
+    "результат и качество",
+    "инновационность",
+    "презентация/демо"
+  ],
+  "generator_version": "analytical-scenarios-v1",
+  "history_end_exclusive": "2026-09-23",
+  "history_start": "2026-07-01",
+  "limitations": [
+    "Все числа и документы синтетические. Это доказательство работы механизмов, не результат компании.",
+    "PASS означает перечисленные инварианты, а не прохождение всей приёмки A/B/C или качество на реальных данных.",
+    "Отчёт вызывает реальные classify_events/recover_daily/forecast_daily/evaluation; API, planner и UI проверяются отдельно.",
+    "Неопределённость IID-normal не откалибрована; 95%/99% — целевые настройки, не измеренный сервис.",
+    "Реальные данные без подтверждённого покрытия, остатков и условий остаются ограниченным preview."
+  ],
+  "mode": "synthetic_demo",
+  "model_version": "robust-daily-v1.2",
+  "report_sha256": "f29921499801aca27ef40876f87d9b1a450b124f144deda9c9256cea12d3a1d4",
+  "schema_version": "b-evidence-v1",
+  "scope": {
+    "sku_id": "SYNTHETIC-B-001",
+    "uom": "piece",
+    "warehouse_id": "SYNTHETIC-WH"
+  },
+  "seed": 42,
+  "seed_usage": "Analytical deterministic inputs; no random draws.",
+  "status": "PASS"
+}
