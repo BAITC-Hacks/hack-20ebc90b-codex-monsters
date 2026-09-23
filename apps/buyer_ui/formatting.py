@@ -1,22 +1,38 @@
 """Presentation helpers. Decimal values remain strings in all API requests."""
 from decimal import Decimal, InvalidOperation
+from datetime import datetime
 
 import streamlit as st
 
 
-def format_decimal(value, *, signed=False):
+def format_decimal(value, *, signed=False, places=None):
     if value is None:
         return "Не рассчитано"
     try:
         number = Decimal(str(value))
         if not number.is_finite():
             return "Некорректное значение"
+        if places is not None:
+            number = number.quantize(Decimal(1).scaleb(-places))
         result = format(number, ",f").replace(",", "\u202f")
+        if "." in result:
+            result = result.rstrip("0").rstrip(".")
         if signed and number > 0:
             result = "+" + result
         return result
     except (InvalidOperation, ValueError):
         return "Некорректное значение"
+
+
+def format_date(value):
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime("%d.%m.%Y")
+    except ValueError:
+        return str(value or "дата не указана")
+
+
+def format_uom(value):
+    return {"pcs": "шт.", "m": "м", "coil": "бухт.", "pack": "уп."}.get(value, value)
 
 
 def format_money(value, currency=None):
@@ -26,12 +42,17 @@ def format_money(value, currency=None):
 
 
 def show_issues(issues):
+    seen = set()
     for issue in issues or []:
         if not isinstance(issue, dict):
             st.warning(str(issue))
             continue
         message = issue.get("message") or issue.get("code", "Ограничение данных")
         scopes = issue.get("scope_ids") or []
+        identity = (message, tuple(str(scope) for scope in scopes))
+        if identity in seen:
+            continue
+        seen.add(identity)
         if scopes:
             message += " · " + ", ".join(str(scope) for scope in scopes)
         severity = issue.get("severity", "warning")

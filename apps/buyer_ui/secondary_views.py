@@ -12,7 +12,7 @@ from uuid import uuid4
 import streamlit as st
 
 from .client import ApiError
-from .formatting import format_decimal, format_money, show_api_error, show_issues, show_quality
+from .formatting import format_date, format_decimal, format_money, show_api_error, show_issues, show_quality
 
 
 def _fingerprint(payload: dict[str, Any]) -> str:
@@ -59,11 +59,11 @@ def _items(response: Any, alternate: str = "items") -> list[dict[str, Any]]:
 
 def _show_mode(record: dict[str, Any]) -> None:
     if record.get("mode") == "synthetic_demo":
-        st.warning("DEMO · синтетические данные. Результат предназначен для демонстрации.")
+        st.caption("Демонстрация на синтетических данных.")
     elif record.get("mode") == "real_preview":
         st.info("Предпросмотр реальных данных; ограничения готовности указаны сервером.")
     if record.get("as_of"):
-        st.caption(f"Данные на {record['as_of']}; контекст воспроизведения, а не текущие остатки.")
+        st.caption(f"Данные на {format_date(record['as_of'])}.")
 
 
 def _show_job(record: dict[str, Any], title: str) -> None:
@@ -72,9 +72,10 @@ def _show_job(record: dict[str, Any], title: str) -> None:
     st.write(f"**{title}: {labels.get(status, status or 'статус не передан')}**")
     details = {key: record[key] for key in ("id", "stage", "created_at", "updated_at") if record.get(key) is not None}
     if details:
-        st.caption(" · ".join(f"{key}: {value}" for key, value in details.items()))
+        with st.expander("Сведения о выполнении"):
+            st.json(details)
     progress = record.get("progress")
-    if isinstance(progress, (float, int)) and 0 <= progress <= 1:
+    if status in ("queued", "running") and isinstance(progress, (float, int)) and 0 <= progress <= 1:
         st.progress(float(progress))
     if status == "failed":
         error = record.get("error")
@@ -190,8 +191,8 @@ def _show_scenario_comparison(
 
 
 def render_scenarios(client: Any) -> None:
-    st.subheader("Сценарии")
-    st.caption("Сценарий использует snapshot и scope завершённого расчёта. Базовые предложения сохраняются.")
+    st.subheader("Что изменится в заказе?")
+    st.caption("Сравните варианты на тех же данных. Текущий заказ останется без изменений.")
     snapshot_id = st.session_state.get("snapshot_id")
     run_id = st.session_state.get("run_id")
     context = (st.session_state.get("client_mode"), snapshot_id, run_id, st.session_state.get("proposal_id"))
@@ -199,7 +200,7 @@ def render_scenarios(client: Any) -> None:
         _clear_scenario()
         st.session_state["_secondary_scenario_context"] = context
     if not snapshot_id or not run_id:
-        st.info("Выберите snapshot и завершите базовый расчёт во вкладке «Данные/проекты».")
+        st.info("Выберите snapshot и завершите базовый расчёт в разделе «Данные».")
         return
     try:
         base_run = client.get_planning_run(run_id)
@@ -235,13 +236,11 @@ def render_scenarios(client: Any) -> None:
     if saved and saved.get("request", {}).get("seed") != seed:
         st.session_state.pop("_secondary_scenario", None)
         st.info("Seed базового расчёта изменился. Прежнее сравнение скрыто.")
-    st.caption(f"Snapshot: {snapshot_id} · базовый run: {run_id}")
-    if base_run.get("seed") is not None:
-        st.caption(f"Seed базового прогноза: {seed}")
-    else:
-        st.caption(f"Seed запроса сценария: {seed}. API не сообщает seed базового прогноза; сервер использует сохранённый прогноз базового run.")
-    if base_run.get("model_version"):
-        st.caption(f"Версия прогноза из API: {base_run['model_version']}")
+    with st.expander("Параметры исходного расчёта"):
+        st.json({"snapshot_id": snapshot_id, "run_id": run_id, "seed": seed,
+                 "model_version": base_run.get("model_version")})
+        if base_run.get("seed") is None:
+            st.caption("API не сообщает seed базового прогноза; сервер использует сохранённый прогноз исходного расчёта.")
     if proposals:
         _show_mode(proposals[0])
     forecast_warnings = {
@@ -265,16 +264,19 @@ def render_scenarios(client: Any) -> None:
             for reason in proposal.get("capabilities", {}).get("reasons", []):
                 st.caption(str(reason))
     with st.form("secondary_scenario_form"):
-        target = st.selectbox("Цель: цикл без дефицита", [0.95, 0.99], index=1, format_func=lambda v: f"{v:.0%}", key="secondary_target")
-        st.caption("Целевой cycle service; это не измеренный уровень сервиса и не fill rate.")
-        delay = st.selectbox("Задержка поставщика, календарных дней", [0, 7, 14], key="secondary_delay")
-        budget_enabled = st.checkbox("Ограничить бюджет", disabled=not currency, key="secondary_budget_enabled")
-        budget = st.text_input("Бюджет (decimal-строка)", disabled=not currency, key="secondary_budget")
-        if currency:
-            st.caption(f"Валюта бюджета: {currency}; сопоставимость стоимости подтверждена capabilities сервера.")
-        else:
-            st.caption("Бюджет недоступен: нужны budget_available для всех предложений, полная стоимость и общая валюта.")
-        submitted = st.form_submit_button("Рассчитать сценарий")
+        protection, delivery = st.columns(2)
+        target = protection.selectbox("Цель: цикл без дефицита", [0.95, 0.99], index=1,
+                                      format_func=lambda v: f"{v:.0%}", key="secondary_target",
+                                      help="Целевая вероятность пройти цикл поставки без дефицита. Это цель расчёта, а не гарантия.")
+        delay = delivery.selectbox("Поставщик задержится на", [0, 7, 14],
+                                   format_func=lambda v: "Без задержки" if v == 0 else f"{v} дней", key="secondary_delay")
+        with st.expander("Ограничить бюджет"):
+            budget_enabled = st.checkbox("Учитывать лимит", disabled=not currency, key="secondary_budget_enabled")
+            budget = st.text_input("Лимит закупки", disabled=not currency, key="secondary_budget",
+                                   help=f"Сумма в {currency}" if currency else "Нужны цены всех товаров в одной валюте.")
+            if not currency:
+                st.caption("Лимит недоступен: нужны цены всех товаров в одной валюте и поддержка сервера.")
+        submitted = st.form_submit_button("Сравнить варианты", type="primary")
     if submitted:
         st.session_state.pop("_secondary_scenario", None)
         overrides: dict[str, Any] = {"service_target": target, "lead_time_delay_days": delay}
@@ -299,7 +301,6 @@ def render_scenarios(client: Any) -> None:
     selected = st.session_state.get("_secondary_scenario")
     if not selected:
         return
-    st.button("Обновить статус сценария", key="secondary_scenario_refresh")
     try:
         scenario = client.get_scenario(selected["id"])
     except ApiError as error:
@@ -314,19 +315,21 @@ def render_scenarios(client: Any) -> None:
         st.error("Сервер не подтвердил ожидаемую базу, snapshot или seed сценария; сравнение скрыто.")
         return
     _show_job(scenario, "Сценарий")
-    st.caption(f"Scenario ID: {selected['id']}")
     if scenario.get("status") != "succeeded":
+        st.button("Обновить результат", key="secondary_scenario_refresh")
         return
+    with st.expander("Обновить результат сравнения"):
+        st.button("Обновить результат", key="secondary_scenario_refresh")
     st.write("**База / Сценарий**")
     st.caption("База — исходный результат завершённого расчёта. Ручные правки предложений не входят в базу сценария.")
-    st.json({"base_policy": policy, "scenario_overrides": selected["request"]["overrides"]})
+    with st.expander("Параметры сравнения"):
+        st.json({"base_policy": policy, "scenario_overrides": selected["request"]["overrides"]})
     _show_scenario_comparison(scenario, currency, proposals)
-    st.caption("Риск дефицита, потерянная маржа, экономия и достигнутый сервис не оценены интерфейсом. Оценка доступна только при наличии соответствующего поля в серверной сводке выше.")
     if scenario.get("assumptions"):
         with st.expander("Допущения сценария"):
             st.json(scenario["assumptions"])
     show_issues(scenario.get("warnings", []))
-    st.info("Для применения политики создайте новый обычный расчёт и пройдите проверку и утверждение его предложения.")
+    st.info("Чтобы использовать эти параметры в заказе, запустите новый расчёт в разделе «Данные» и утвердите результат.")
 
 
 def _render_snapshot_job(client: Any) -> None:
@@ -341,7 +344,7 @@ def _render_snapshot_job(client: Any) -> None:
     st.button("Обновить статус импорта", key="secondary_snapshot_refresh")
     try:
         job = client.get_job(job_id)
-        _show_job(job, "Создание snapshot")
+        _show_job(job, "Подготовка данных")
         if job.get("status") != "succeeded":
             return
         snapshot_id = job.get("snapshot_id") or _snapshot_from_ref(job.get("result_ref"))
@@ -356,7 +359,7 @@ def _render_snapshot_job(client: Any) -> None:
             return
         _show_mode(snapshot)
         show_quality(snapshot.get("quality", {}))
-        if st.button("Использовать готовый snapshot", key="secondary_use_created_snapshot"):
+        if st.button("Использовать эти данные", key="secondary_use_created_snapshot"):
             _select_snapshot(snapshot_id)
             st.rerun()
     except ApiError as error:
@@ -364,7 +367,7 @@ def _render_snapshot_job(client: Any) -> None:
 
 
 def _render_sources_and_import(client: Any) -> None:
-    st.write("**Зарегистрированные источники**")
+    st.caption("Выберите источники, уже подключённые к серверу. Загрузка файлов здесь не предусмотрена.")
     try:
         response = client.list_sources()
     except ApiError as error:
@@ -372,18 +375,20 @@ def _render_sources_and_import(client: Any) -> None:
         return
     sources = _items(response, "sources")
     if sources:
-        st.dataframe(sources, hide_index=True, width="stretch")
+        with st.expander("Список источников"):
+            st.dataframe(sources, hide_index=True, width="stretch")
     else:
         st.info("API не вернул список зарегистрированных source IDs. Можно выбрать готовый snapshot по ID.")
     with st.expander("Метаданные источников из API"):
         st.json(response)
     source_ids = [s["source_id"] for s in sources if isinstance(s.get("source_id"), str)]
     with st.form("secondary_create_snapshot"):
-        chosen = st.multiselect("Источники для нового snapshot", source_ids, key="secondary_sources")
-        mapping = st.text_input("Версия mapping", value=st.session_state.get("mapping_version", "1.0"), key="secondary_mapping")
-        mode = st.selectbox("Режим данных", ["synthetic_demo", "real_preview"], index=0 if st.session_state.get("data_mode", "synthetic_demo") == "synthetic_demo" else 1, key="secondary_import_mode")
-        as_of = st.text_input("Момент воспроизведения as_of (с часовым поясом)", value=st.session_state.get("as_of", "2026-09-01T00:00:00+00:00"), key="secondary_as_of")
-        create = st.form_submit_button("Создать snapshot", disabled=not source_ids)
+        chosen = st.multiselect("Источники данных", source_ids, key="secondary_sources")
+        with st.expander("Параметры импорта"):
+            mapping = st.text_input("Версия mapping", value=st.session_state.get("mapping_version", "1.0"), key="secondary_mapping")
+            mode = st.selectbox("Режим данных", ["synthetic_demo", "real_preview"], index=0 if st.session_state.get("data_mode", "synthetic_demo") == "synthetic_demo" else 1, key="secondary_import_mode")
+            as_of = st.text_input("Момент воспроизведения as_of (с часовым поясом)", value=st.session_state.get("as_of", "2026-09-01T00:00:00+00:00"), key="secondary_as_of")
+        create = st.form_submit_button("Подготовить данные", disabled=not source_ids)
     if create:
         if not chosen or not mapping.strip():
             st.error("Выберите хотя бы один источник и укажите версию mapping.")
@@ -421,16 +426,20 @@ def _render_sources_and_import(client: Any) -> None:
 
 
 def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
-    st.write("**Обычный расчёт предложений**")
+    st.write("**Рассчитать заказ**")
     quality = snapshot.get("quality", {})
     can_plan = quality.get("capabilities", {}).get("can_plan", False)
     if not can_plan:
-        st.warning("Расчёт недоступен: snapshot не получил capability can_plan. Причины показаны в качестве данных.")
+        st.warning("Расчёт недоступен. Откройте качество данных и исправьте указанные ограничения.")
     with st.form("secondary_planning_form"):
-        target = st.selectbox("Цель базового расчёта: цикл без дефицита", [0.95, 0.99], format_func=lambda v: f"{v:.0%}", key="secondary_base_target")
-        delay = st.selectbox("Задержка базового расчёта, календарных дней", [0, 7, 14], key="secondary_base_delay")
-        policy_version = st.text_input("Версия политики", value=st.session_state.get("policy_version", "1.0"), key="secondary_policy_version")
-        start = st.form_submit_button("Запустить базовый расчёт", disabled=not can_plan)
+        with st.expander("Изменить параметры расчёта"):
+            target = st.selectbox("Цель: цикл без дефицита", [0.95, 0.99], format_func=lambda v: f"{v:.0%}", key="secondary_base_target",
+                                  help="Цель расчёта, а не гарантия отсутствия дефицита.")
+            delay = st.selectbox("Задержка поставщика", [0, 7, 14], format_func=lambda v: "Без задержки" if v == 0 else f"{v} дней", key="secondary_base_delay")
+            policy_version = st.text_input("Версия политики", value=st.session_state.get("policy_version", "1.0"), key="secondary_policy_version")
+        delay_label = "без задержки" if delay == 0 else f"задержка {delay} дней"
+        st.caption(f"Цель: {target:.0%}, {delay_label}.")
+        start = st.form_submit_button("Рассчитать заказ", disabled=not can_plan, type="primary")
     if start:
         if not policy_version.strip():
             st.error("Укажите версию политики.")
@@ -453,7 +462,6 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
     run_id = st.session_state.get("run_id")
     if not run_id:
         return
-    st.button("Обновить статус расчёта", key="secondary_run_refresh")
     try:
         run = client.get_planning_run(run_id)
         known_snapshot = run.get("snapshot_id") or st.session_state.get("_secondary_run_contexts", {}).get(run_id, {}).get("snapshot_id")
@@ -461,26 +469,29 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
             st.error("Текущий run относится к другому snapshot. Запустите расчёт выбранного snapshot.")
             return
         _show_job(run, "Базовый расчёт")
-        st.caption(f"Run ID: {run_id}")
-        if run.get("quality"):
-            show_quality(run["quality"])
+        if run.get("status") != "succeeded":
+            st.button("Обновить статус расчёта", key="secondary_run_refresh")
+        else:
+            with st.expander("Обновить состояние расчёта"):
+                st.button("Обновить статус расчёта", key="secondary_run_refresh")
         if run.get("status") == "succeeded":
             listing = client.list_proposals(run_id=run_id, limit=200)
             proposals = _items(listing)
             if not proposals:
                 st.info("Расчёт завершён. Сервер не создал предложений; проверьте качество и причины исключения.")
             else:
-                st.dataframe(proposals, hide_index=True, width="stretch")
+                st.success(f"Готово: заказов по поставщикам — {len(proposals)}.")
                 ids = [p["proposal_id"] for p in proposals if p.get("proposal_id")]
-                if ids:
-                    chosen = st.selectbox("Предложение для вкладки «Заказы»", ids, key=f"secondary_proposal_{run_id}")
-                    if st.button("Выбрать предложение", key="secondary_choose_proposal"):
-                        st.session_state["proposal_id"] = chosen
-                        st.session_state["pending_proposal_selection"] = chosen
-                        _clear_scenario()
-                        st.rerun()
+                if ids and st.button("Открыть заказы", key="secondary_choose_proposal"):
+                    chosen = st.session_state.get("proposal_id")
+                    chosen = chosen if chosen in ids else ids[0]
+                    st.session_state["proposal_id"] = chosen
+                    st.session_state["pending_proposal_selection"] = chosen
+                    st.session_state["pending_page"] = "Заказы"
+                    _clear_scenario()
+                    st.rerun()
                 if isinstance(listing, dict) and listing.get("next_cursor"):
-                    st.caption("Показаны первые 200 предложений. Остальные доступны через фильтры вкладки «Заказы».")
+                    st.caption("Остальные предложения доступны в разделе «Заказы».")
     except ApiError as error:
         show_api_error(error)
 
@@ -504,7 +515,7 @@ def _render_projects(client: Any) -> None:
     if known_snapshot and known_snapshot != st.session_state.get("snapshot_id"):
         st.error("Классификация относится к другому snapshot; данные скрыты.")
         return
-    label = st.selectbox("Метка события", [None, "regular", "project", "suspected_project", "uncertain"], format_func=lambda v: "Все метки" if v is None else v, key="secondary_project_label")
+    label = st.selectbox("Метка события", [None, "regular", "project", "suspected_project", "uncertain"], format_func=lambda v: {None: "Все", "regular": "Регулярные", "project": "Проектные", "suspected_project": "Возможно проектные", "uncertain": "Не определено"}[v], key="secondary_project_label")
     page_size = st.selectbox("Событий на странице", [25, 50, 100, 200], index=1, key="secondary_project_limit")
     context = (st.session_state.get("client_mode"), st.session_state.get("snapshot_id"), run_id, label, page_size)
     if st.session_state.get("_secondary_events_context") != context:
@@ -549,39 +560,41 @@ def _render_projects(client: Any) -> None:
 
 
 def render_data(client: Any) -> None:
-    st.subheader("Данные/проекты")
-    st.caption("Источники регистрируются на backend. Импорт и расчёты выполняются через API.")
-    _render_sources_and_import(client)
-    st.divider()
-    with st.form("secondary_select_snapshot"):
-        selected_id = st.text_input("Готовый snapshot ID", value=st.session_state.get("snapshot_id") or "", key="secondary_snapshot_input")
-        select = st.form_submit_button("Проверить и выбрать snapshot")
-    if select:
-        if not selected_id.strip():
-            st.error("Укажите snapshot ID.")
-        else:
-            try:
-                snapshot = client.get_snapshot(selected_id.strip())
-                if snapshot.get("snapshot_id") != selected_id.strip():
-                    st.error("API вернул snapshot с другим ID; выбор не изменён.")
-                else:
-                    _select_snapshot(selected_id.strip())
-                    st.rerun()
-            except ApiError as error:
-                show_api_error(error)
+    st.subheader("Данные для заказа")
     snapshot_id = st.session_state.get("snapshot_id")
     if snapshot_id:
         try:
             snapshot = client.get_snapshot(snapshot_id)
-            st.write(f"**Выбранный snapshot: {snapshot_id}**")
             _show_mode(snapshot)
-            show_quality(snapshot.get("quality", {}))
-            with st.expander("Метаданные и допущения snapshot"):
-                st.json(snapshot)
+            quality = snapshot.get("quality", {})
+            label = {"ready": "Данные готовы к работе", "degraded": "В данных есть ограничения", "blocked": "Данные требуют исправления"}.get(quality.get("status"), "Проверьте качество данных")
+            with st.expander(label, expanded=quality.get("status") == "blocked"):
+                show_quality(quality)
+                with st.expander("Технические сведения"):
+                    st.json(snapshot)
             _render_planning(client, snapshot)
         except ApiError as error:
             show_api_error(error)
     else:
-        st.info("Создайте snapshot или явно выберите готовый snapshot по ID.")
-    st.divider()
-    _render_projects(client)
+        st.write("Выберите подключённые источники, подготовьте данные и запустите первый расчёт.")
+    with st.expander("Обновить исходные данные", expanded=not snapshot_id):
+        _render_sources_and_import(client)
+        with st.expander("Выбрать готовые данные по ID"):
+            with st.form("secondary_select_snapshot"):
+                selected_id = st.text_input("ID набора данных", value=snapshot_id or "", key="secondary_snapshot_input")
+                select = st.form_submit_button("Выбрать данные")
+            if select:
+                if not selected_id.strip():
+                    st.error("Укажите ID набора данных.")
+                else:
+                    try:
+                        snapshot = client.get_snapshot(selected_id.strip())
+                        if snapshot.get("snapshot_id") != selected_id.strip():
+                            st.error("API вернул snapshot с другим ID; выбор не изменён.")
+                        else:
+                            _select_snapshot(selected_id.strip())
+                            st.rerun()
+                    except ApiError as error:
+                        show_api_error(error)
+    with st.expander("Проектные и регулярные продажи"):
+        _render_projects(client)

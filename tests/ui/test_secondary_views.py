@@ -46,11 +46,11 @@ class SecondaryViewsTests(unittest.TestCase):
         app = self.app("render_scenarios")
         client = app.session_state["client"]
         base = client.get_proposal("demo-proposal-tools")
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         request = deepcopy(app.session_state["_secondary_scenario"]["request"])
         self.assertEqual(request["overrides"], {"service_target": 0.99, "lead_time_delay_days": 0})
         self.assertEqual(request["seed"], 42)
-        self.submit(app, "Обновить статус сценария")
+        self.submit(app, "Обновить результат")
         self.assertEqual(app.session_state["_secondary_scenario"]["request"], request)
         self.assertEqual(len(client._requests), 1)
         self.assertEqual(client.get_proposal("demo-proposal-tools"), base)
@@ -70,24 +70,24 @@ class SecondaryViewsTests(unittest.TestCase):
             return response
 
         client.create_scenario = timeout_once
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         self.assertNotIn("_secondary_scenario", app.session_state)
         self.assertTrue(any("неизвестен" in item.value for item in app.warning))
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         self.assertEqual(attempts[0], attempts[1])
         self.assertIn("_secondary_scenario", app.session_state)
         self.assertEqual(len(client._requests), 1)
 
     def test_context_and_proposal_version_invalidate_scenario_display(self):
         app = self.app("render_scenarios")
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         client = app.session_state["client"]
         client.edit_proposal("demo-proposal-tools", {"expected_version": 1, "edits": [{"line_id": "line-tools", "purchase_qty": "120"}], "reason": "Новая версия"})
         app.run()
         self.clean(app)
         self.assertNotIn("_secondary_scenario", app.session_state)
         self.assertTrue(any("Версия базового предложения изменилась" in item.value for item in app.info))
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         app.session_state["snapshot_id"] = "another-snapshot"
         app.run()
         self.clean(app)
@@ -113,8 +113,8 @@ class SecondaryViewsTests(unittest.TestCase):
 
         app.session_state["client"].create_snapshot = ambiguous
         app.multiselect(key="secondary_sources").set_value(["demo-source"])
-        self.submit(app, "Создать snapshot")
-        self.submit(app, "Создать snapshot")
+        self.submit(app, "Подготовить данные")
+        self.submit(app, "Подготовить данные")
         self.assertEqual(len(calls), 1)
         self.assertTrue(any("повтор не отправлен" in item.value for item in app.warning))
         self.assertEqual(app.session_state["snapshot_id"], "demo-snapshot")
@@ -131,10 +131,10 @@ class SecondaryViewsTests(unittest.TestCase):
 
         client.create_snapshot = observe
         app.multiselect(key="secondary_sources").set_value(["demo-source"])
-        self.submit(app, "Создать snapshot")
+        self.submit(app, "Подготовить данные")
         self.assertEqual(app.session_state["_secondary_snapshot_job"], "demo-snapshot-job")
         self.submit(app, "Обновить статус импорта")
-        self.submit(app, "Создать snapshot")
+        self.submit(app, "Подготовить данные")
         self.assertEqual(len(calls), 1)
         self.assertEqual(app.session_state["run_id"], "demo-run")
 
@@ -154,7 +154,7 @@ class SecondaryViewsTests(unittest.TestCase):
     def test_selecting_unknown_snapshot_retains_valid_context(self):
         app = self.app("render_data")
         app.text_input(key="secondary_snapshot_input").set_value("missing")
-        self.submit(app, "Проверить и выбрать snapshot")
+        self.submit(app, "Выбрать данные")
         self.assertEqual(app.session_state["snapshot_id"], "demo-snapshot")
         self.assertEqual(app.session_state["run_id"], "demo-run")
         self.assertTrue(any("не найден" in item.value for item in app.error))
@@ -177,10 +177,10 @@ class SecondaryViewsTests(unittest.TestCase):
 
     def test_invalid_new_scenario_hides_previous_result(self):
         app = self.app("render_scenarios")
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         app.checkbox(key="secondary_budget_enabled").check()
         app.text_input(key="secondary_budget").set_value("NaN")
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         self.assertNotIn("_secondary_scenario", app.session_state)
         self.assertTrue(any("положительный конечный бюджет" in item.value for item in app.error))
 
@@ -213,16 +213,16 @@ class SecondaryViewsTests(unittest.TestCase):
         # Attach the actual proposal warehouse; identity must keep the second row distinct.
         backend_result["changed_lines"][0]["warehouse_id"] = client._proposals["demo-proposal-tools"]["warehouse_id"]
         client.get_scenario = lambda scenario_id: deepcopy(backend_result)
-        self.submit(app, "Рассчитать сценарий")
+        self.submit(app, "Сравнить варианты")
         self.assertEqual(app.session_state["_secondary_scenario"]["request"]["seed"], 42)
         self.assertTrue(any("API не сообщает seed" in item.value for item in app.caption))
-        self.assertTrue(any("fixture-v1" in item.value for item in app.caption))
+        self.assertTrue(any("fixture-v1" in item.value for item in app.json))
         self.assertTrue(any("временное синтетическое приближение" in item.value for item in app.warning))
         self.assertEqual(next(metric.value for metric in app.metric if metric.label == "Изменённых строк"), "1")
         selector = app.selectbox(key="secondary_scenario_line_demo-scenario-service")
         self.assertEqual(len(selector.options), 2)
         rows = [row for table in app.dataframe for row in table.value.to_dict("records")]
-        self.assertIn({"Показатель": "Закупочная стоимость", "База": "13\u202f800.00 KZT", "Сценарий": "15\u202f000.00 KZT"}, rows)
+        self.assertIn({"Показатель": "Закупочная стоимость", "База": "13\u202f800 KZT", "Сценарий": "15\u202f000 KZT"}, rows)
         self.assertIn({"Показатель": "Заказ в базовой единице", "База": "108", "Сценарий": "120", "Единица": "шт"}, rows)
         self.assertTrue(any("Изменение заказа из API: +12 шт" in item.value for item in app.caption))
         self.assertTrue(any("сравнение SS недоступно" in item.value for item in app.caption))

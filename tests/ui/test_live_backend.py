@@ -281,19 +281,21 @@ class LiveBackendTests(unittest.TestCase):
             clean()
             self.assertTrue(st.get_option("client.disableDataExport"))
             self.assertIsInstance(app.session_state["client"], HttpClient)
-            self.assertEqual([tab.label for tab in app.tabs], ["Заказы", "Сценарии", "Данные/проекты"])
+            self.assertEqual(app.radio(key="workspace_page").options, ["Заказы", "Что, если…", "Данные"])
+            click("Перейти к данным")
             app.multiselect(key="secondary_sources").set_value(["synthetic-demo"])
             app.text_input(key="secondary_as_of").set_value(SNAPSHOT_REQUEST["as_of"])
-            click("Создать snapshot")
+            click("Подготовить данные")
             job_id = app.session_state["_secondary_snapshot_job"]
             job = completed(lambda: self.client.get_job(job_id))
             click("Обновить статус импорта")
-            click("Использовать готовый snapshot")
+            click("Использовать эти данные")
             self.assertEqual(app.session_state["snapshot_id"], job["result_ref"])
-            click("Запустить базовый расчёт")
+            click("Рассчитать заказ")
             run_id = app.session_state["run_id"]
             completed(lambda: self.client.get_planning_run(run_id))
             click("Обновить статус расчёта")
+            click("Открыть заказы")
             proposal_id = app.session_state["proposal_id"]
             proposal = self.client.get_proposal(proposal_id)
             line_id = app.selectbox(key=f"line_picker:{proposal_id}").value
@@ -301,12 +303,11 @@ class LiveBackendTests(unittest.TestCase):
             identity = f"{proposal_id}:{line_id}"
             app.text_input(key=f"qty:{identity}").set_value(larger_valid_quantity(line))
             app.text_area(key=f"reason:{identity}").set_value("Синтетический прогон покупателя через HTTP")
-            click("Сохранить новую версию")
+            click("Сохранить количество")
             edited = self.client.get_proposal(proposal_id)
             self.assertEqual(edited["version"], proposal["version"] + 1)
-            click("Утвердить просмотренную версию")
+            click("Утвердить и подготовить CSV")
             self.assertEqual(self.client.get_proposal(proposal_id)["status"], "approved")
-            click("Подготовить утверждённый CSV")
             download = app.session_state["order_download"]
             key = app.session_state["export_keys"][download["identity"]]
             actual = self.client.export_proposal(proposal_id, {
@@ -314,10 +315,12 @@ class LiveBackendTests(unittest.TestCase):
             })
             self.assertEqual(download["data"], actual.data)
             self.assertEqual(download["filename"], actual.filename)
-            click("Рассчитать сценарий")
+            app.radio(key="workspace_page").set_value("Что, если…").run()
+            clean()
+            click("Сравнить варианты")
             scenario_id = app.session_state["_secondary_scenario"]["id"]
             scenario = completed(lambda: self.client.get_scenario(scenario_id))
-            click("Обновить статус сценария")
+            click("Обновить результат")
             self.assertEqual(self.client.get_proposal(proposal_id)["status"], "approved")
             rendered_rows = [row for table in app.dataframe
                              for row in table.value.to_dict("records")]
@@ -346,7 +349,7 @@ class LiveBackendTests(unittest.TestCase):
                 fresh = AppTest.from_file(str(APP), default_timeout=20).run()
                 self.assertFalse(list(fresh.exception))
                 self.assertIsNot(fresh.session_state["client"], app.session_state["client"])
-                export_button = next(b for b in fresh.button if b.label == "Подготовить утверждённый CSV")
+                export_button = next(b for b in fresh.button if b.label == "Подготовить CSV")
                 self.assertFalse(export_button.disabled)
                 self.assertNotIn("order_download", fresh.session_state)
 

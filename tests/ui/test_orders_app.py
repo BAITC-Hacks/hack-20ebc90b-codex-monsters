@@ -51,23 +51,25 @@ class OrdersAppTests(unittest.TestCase):
     def edit(self, quantity, reason="Подтверждённая потребность"):
         self.app.text_input(key=f"qty:{IDENTITY}").set_value(quantity)
         self.app.text_area(key=f"reason:{IDENTITY}").set_value(reason)
-        self.button("Сохранить новую версию").click().run()
+        self.button("Сохранить количество").click().run()
         self.assert_no_crash()
 
     def errors(self):
         # Human message is an error element; its protocol code lives in a caption.
         return "\n".join(str(item.value) for item in [*self.app.error, *self.app.caption])
 
-    def test_three_tabs_and_explicit_mock_label(self):
-        self.assertEqual([tab.label for tab in self.app.tabs], ["Заказы", "Сценарии", "Данные/проекты"])
-        self.assertTrue(any("Демо: имитация API" in str(item.value) for item in self.app.warning))
-        self.assertTrue(self.button("Подготовить утверждённый CSV").disabled)
+    def test_task_navigation_and_explicit_mock_label(self):
+        self.assertEqual(self.app.radio(key="workspace_page").options, ["Заказы", "Что, если…", "Данные"])
+        self.assertTrue(any("Демо: имитация API" in str(item.value) for item in self.app.caption))
+        self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
+        self.assertNotIn("order_download", self.app.session_state)
         self.assertEqual(self.app.selectbox(key=f"line_picker:{PROPOSAL}").value, "line-tools")
 
     def test_builtin_table_export_is_disabled_to_preserve_approval_gate(self):
         # Streamlit's dataframe menu must not bypass the approved API CSV flow.
         self.assertTrue(st.get_option("client.disableDataExport"))
-        self.assertTrue(self.button("Подготовить утверждённый CSV").disabled)
+        self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
+        self.assertNotIn("order_download", self.app.session_state)
 
     def test_selection_survives_sort_and_filter_changes_and_edits_by_line_id(self):
         client = self.client()
@@ -108,15 +110,14 @@ class OrdersAppTests(unittest.TestCase):
         self.edit("120")
         self.assertEqual(self.proposal()["version"], 2)
         self.assertEqual(self.proposal()["status"], "draft")
-        self.assertTrue(self.button("Подготовить утверждённый CSV").disabled)
+        self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
+        self.assertNotIn("order_download", self.app.session_state)
         self.app.button(key=f"approve:{PROPOSAL}").click().run()
         self.assert_no_crash()
         self.assertEqual(self.proposal()["status"], "approved")
         self.app.button(key="orders_refresh").click().run()
         self.assert_no_crash()
         self.assertEqual(self.proposal()["status"], "approved")
-        self.app.button(key=f"export:{PROPOSAL}").click().run()
-        self.assert_no_crash()
         exported = self.app.session_state["order_download"]
         self.assertEqual(exported["identity"][1], 2)
         self.assertIn("120", exported["data"].decode("utf-8-sig"))
@@ -126,7 +127,8 @@ class OrdersAppTests(unittest.TestCase):
         self.assertEqual(self.proposal()["version"], 3)
         self.assertEqual(self.proposal()["status"], "draft")
         self.assertNotIn("order_download", self.app.session_state)
-        self.assertTrue(self.button("Подготовить утверждённый CSV").disabled)
+        self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
+        self.assertNotIn("order_download", self.app.session_state)
 
     def test_validation_error_keeps_quantity_and_reason_for_correction(self):
         self.edit("109", "Не терять введённую причину")
@@ -149,7 +151,7 @@ class OrdersAppTests(unittest.TestCase):
         self.assertEqual(self.proposal()["lines"][0]["selected_purchase_qty"], "132")
         self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "120")
         self.assertEqual(self.app.text_area(key=f"reason:{IDENTITY}").value, "Мой сохранённый черновик")
-        self.assertTrue(self.button("Сохранить новую версию").disabled)
+        self.assertTrue(self.button("Сохранить количество").disabled)
         self.assertTrue(any("Сохранённый ввод не применён" in str(item.value) for item in self.app.warning))
 
     def test_missing_role_is_not_shown_as_success_and_draft_survives(self):
@@ -157,14 +159,15 @@ class OrdersAppTests(unittest.TestCase):
             raise ApiError(403, "MISSING_ROLE", "Нет роли approver", retryable=False)
 
         self.client().approve_proposal = forbidden
-        self.app.text_input(key=f"qty:{IDENTITY}").set_value("120")
+        self.app.text_input(key=f"qty:{IDENTITY}").set_value("108")
         self.app.text_area(key=f"reason:{IDENTITY}").set_value("Сохранить черновик при ошибке")
         self.app.button(key=f"approve:{PROPOSAL}").click().run()
         self.assert_no_crash()
         self.assertIn("403", self.errors())
         self.assertEqual(self.proposal()["status"], "draft")
-        self.assertTrue(self.button("Подготовить утверждённый CSV").disabled)
-        self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "120")
+        self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
+        self.assertNotIn("order_download", self.app.session_state)
+        self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "108")
         self.assertEqual(self.app.text_area(key=f"reason:{IDENTITY}").value, "Сохранить черновик при ошибке")
 
     def test_approval_of_stale_review_is_blocked_before_post(self):
@@ -181,10 +184,15 @@ class OrdersAppTests(unittest.TestCase):
         self.assertEqual(self.proposal()["version"], 2)
 
     def test_export_timeout_retains_key_for_same_logical_attempt(self):
-        self.app.button(key=f"approve:{PROPOSAL}").click().run()
         client = self.client()
         original = client.export_proposal
+        original_approve = client.approve_proposal
+        approvals = []
         calls = []
+
+        def approve_once(*args):
+            approvals.append(args)
+            return original_approve(*args)
 
         def timeout_once(proposal_id, payload):
             calls.append(dict(payload))
@@ -193,15 +201,71 @@ class OrdersAppTests(unittest.TestCase):
             return original(proposal_id, payload)
 
         client.export_proposal = timeout_once
-        self.app.button(key=f"export:{PROPOSAL}").click().run()
+        client.approve_proposal = approve_once
+        self.app.button(key=f"approve:{PROPOSAL}").click().run()
         self.assert_no_crash()
         self.assertNotIn("order_download", self.app.session_state)
         self.assertIn("TIMEOUT", self.errors())
+        self.assertEqual(self.proposal()["status"], "approved")
+        self.assertFalse(any(b.key == f"approve:{PROPOSAL}" for b in self.app.button))
         self.app.button(key=f"export:{PROPOSAL}").click().run()
         self.assert_no_crash()
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0], calls[1])
+        self.assertEqual(len(approvals), 1)
         self.assertIn("order_download", self.app.session_state)
+
+    def test_version_change_between_approval_and_export_never_downloads_new_draft(self):
+        client = self.client()
+        original = client.approve_proposal
+
+        def approve_then_concurrent_edit(proposal_id, payload):
+            result = original(proposal_id, payload)
+            client.edit_proposal(proposal_id, {
+                "expected_version": payload["expected_version"],
+                "edits": [{"line_id": "line-tools", "purchase_qty": "120"}],
+                "reason": "Другой закупщик изменил заказ после утверждения",
+            })
+            return result
+
+        client.approve_proposal = approve_then_concurrent_edit
+        self.app.button(key=f"approve:{PROPOSAL}").click().run()
+        self.assert_no_crash()
+        self.assertEqual(self.proposal()["status"], "draft")
+        self.assertEqual(self.proposal()["version"], 2)
+        self.assertNotIn("order_download", self.app.session_state)
+        self.assertIn("409", self.errors())
+
+    def test_navigation_retains_line_draft_and_does_not_submit_it(self):
+        self.app.text_input(key=f"qty:{IDENTITY}").set_value("120").run()
+        self.app.text_area(key=f"reason:{IDENTITY}").set_value("Вернуться к этой правке").run()
+        self.app.radio(key="workspace_page").set_value("Данные").run()
+        self.assert_no_crash()
+        self.app.radio(key="workspace_page").set_value("Заказы").run()
+        self.assert_no_crash()
+        self.assertEqual(self.proposal()["version"], 1)
+        self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "120")
+        self.assertEqual(self.app.text_area(key=f"reason:{IDENTITY}").value, "Вернуться к этой правке")
+
+    def test_unsaved_quantity_cannot_be_ignored_by_approval(self):
+        self.app.text_input(key=f"qty:{IDENTITY}").set_value("120").run()
+        self.assert_no_crash()
+        self.assertFalse(any(b.key == f"approve:{PROPOSAL}" for b in self.app.button))
+        self.assertEqual(self.proposal()["version"], 1)
+        self.app.button(key=f"discard:{IDENTITY}").click().run()
+        self.assert_no_crash()
+        self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "108")
+        self.assertFalse(self.app.button(key=f"approve:{PROPOSAL}").disabled)
+
+    def test_orders_do_not_request_unrelated_sources_or_projects(self):
+        def unexpected(*args, **kwargs):
+            raise AssertionError("Inactive pages must not make API requests")
+
+        self.client().list_sources = unexpected
+        self.client().list_demand_events = unexpected
+        self.app.run()
+        self.assert_no_crash()
+        self.assertFalse(any(b.label == "Рассчитать заказ" for b in self.app.button))
 
 
 @unittest.skipUnless(AppTest is not None, "Streamlit is needed to import UI configuration")
