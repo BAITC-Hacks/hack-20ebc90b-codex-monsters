@@ -1,48 +1,43 @@
 # Приёмка части C
 
-Область: Streamlit UI, HTTP-клиент, синтетический mock и документация. Контрольная исходная ревизия планов: `3f0f23b530c0ca3ab279fdfb39cebd69f51bcc1f`. Проверенная реализация части C: commit `5fab3ef59c437f1e3777b0ca32d6ccf2ef95e6d5`, ветка `codex/ui-mvp`. Проверены только принадлежащие C каталоги.
+Проверенная реализация UI: `c0007e38253b102d8432bb02d4195aca44079292`. Backend A: `d619ac2d3fe9fa628f921fa4c95574f54c70aff3`. Изменения C объединены с новой main; работа продолжается в main по актуальному AGENTS.md. C меняет только свои UI/tests/demo каталоги.
 
-`MOCK` проверяет клиентское поведение на подготовленных синтетических ответах. `HTTP STUB` проверяет маршруты, JSON, ошибки и bytes на локальном сервере стандартной библиотеки. `LIVE` требует backend A/B с расчётами, хранением и enforcement. Эти уровни не взаимозаменяемы.
+## Выполненные проверки
 
-## Автоматические проверки
-
-Фактически выполненная команда в изолированном тестовом окружении:
+Python **3.12.14**, Streamlit **1.64.0**, 23 сентября 2026 года:
 
 ```bash
-/tmp/codex-ui-mvp-venv/bin/python -m unittest discover -s tests/ui -v
+/tmp/codex-ui-mvp-venv/bin/python -m ruff check apps/buyer_ui tests/ui
+/tmp/codex-ui-mvp-venv/bin/python -m pytest -q
 ```
 
-Окружение: Python **3.12.14**, Streamlit **1.64.0**. Финальный запуск 2026-09-23: **53 теста, 2.951 с, OK**, без пропусков. Полный вывод сохранён в [ui-test-results.txt](ui-test-results.txt). Предупреждение Streamlit `missing ScriptRunContext` относится к запуску AppTest в тестовом процессе; исключений приложения нет. Для собственного `.venv` команда из [runbook](runbook.md) эквивалентна. Целевой Python 3.11 и общий lock-файл должны быть проверены при интеграции A.
+Ruff: **All checks passed**. Общий прогон: **123 passed, 30 subtests passed, 12.28 s**, без пропусков. Вывод: [full-test-results.txt](full-test-results.txt). Одно предупреждение — deprecation httpx в FastAPI TestClient. До интеграции отдельно прошли 53 проверки C: [исходный протокол](ui-test-results.txt).
 
 | Проверка | Уровень | Статус | Доказательство |
 |---|---|---|---|
-| Base URL `/v1`, безопасные ID/query, decimal-строки и точные тела изменяющих запросов | HTTP STUB | PASS | 18 тестов [test_http_client.py](../../tests/ui/test_http_client.py), включая transport errors и export ниже |
-| 403/409/422, timeout, неоднозначный 500, некорректный JSON/NaN, запрет redirects и отсутствие fallback | HTTP STUB | PASS | Ошибки сохраняют код; запросы не повторяются автоматически; невалидное число не отправляется |
-| CSV приходит как bytes ответа; повтор использует прежний idempotency key; JSON не выдаётся за CSV | HTTP STUB | PASS | Проверены bytes, filename и точное тело обоих запросов export |
-| Draft нельзя экспортировать; approval конкретной версии; изменение снимает approval | MOCK | PASS | 14 тестов [test_mock_workflow.py](../../tests/ui/test_mock_workflow.py); старый export отвергается после изменения |
-| Ledger golden108 и явная ручная дельта; выбор строки по ID после сортировки/фильтра | MOCK/UI | PASS | Ledger сходится по Decimal; recommendation сохранена; PATCH адресует `line-tools` |
-| Scenario не меняет baseline; неподдержанный budget отклонён | MOCK | PASS | Сверка proposal до/после, повтор idempotency key возвращает тот же job |
-| Три вкладки, маркировка, edit → approve → refresh → CSV → edit | UI | PASS | 9 тестов [test_orders_app.py](../../tests/ui/test_orders_app.py); новая версия удаляет старую download-кнопку/bytes и approval |
-| 403/409/422 сохраняют пользовательский ввод; timeout export сохраняет ключ попытки | UI | PASS | Инъекция ошибок в AppTest; утверждённый статус не подставляется локально |
-| Встроенное скачивание таблиц Streamlit не обходит approval | UI | PASS | `client.disableDataExport=True`; отдельный утверждённый CSV остаётся доступен только через workflow |
-| Токен окружения привязан к настроенному адресу API | UI CONFIG | PASS | 2 теста CredentialScopeTests: чужой адрес отклонён до создания клиента; настроенный адрес получает token |
-| Scenarios/import/jobs, retry, очистка устаревшего результата, pagination и выбор контекста | UI | PASS | 10 тестов [test_secondary_views.py](../../tests/ui/test_secondary_views.py); failed run не показывает старую классификацию |
+| Routes, decimal-строки, 403/409/422, timeout/500, malformed JSON, точные CSV bytes | HTTP STUB | PASS | 18 test_http_client, отсутствие fallback и автоматических повторов mutations |
+| Golden108, ручная дельта, nullable money, изоляция сценария, invalid/stale export | MOCK | PASS | 14 test_mock_workflow; mock не назван вычислительным backend |
+| Три вкладки, стабильный line_id, черновики, версии и request key | UI | PASS | 9 AppTest заказов и 13 AppTest данных/сценариев |
+| Токен нельзя отправить на изменённый пользователем адрес | CONFIG | PASS | 2 CredentialScopeTests: чужой URL отклонён до создания клиента |
+| Snapshot → run → proposal → edit → approval → CSV | LIVE | PASS | test_live_backend запускает настоящий uvicorn и HttpClient |
+| Draft/invalid/stale операции отклоняются backend | LIVE | PASS | Невалидное количество, старые version/hash, export до approval и после новой правки |
+| Approval и идентичный CSV переживают перезапуск backend | LIVE | PASS | Новый клиент и процесс с тем же temp data_dir возвращают сохранённую версию и CSV bytes |
+| Пустая UI-сессия создаёт snapshot/run; новая сессия восстанавливает approval | LIVE UI | PASS | AppTest с настоящим HTTP, без MockClient и подмены forecast_provider |
+| Живой сценарий пересчитывает policy и сохраняет базовые предложения | LIVE | PASS | Суммы/количества на экране сверены с payload; forecast assumptions видимы |
+| Встроенное скачивание таблицы отсутствует с первого отображения | BROWSER/UI | PASS | Новый сервер 8503: 0 Download as CSV; approved CSV доступен после workflow. Bootstrap-rerun проверен AppTest |
 
-Также выполнен визуальный просмотр локального Streamlit в браузере по адресу `127.0.0.1:8501` в synthetic mock-режиме. Это проверка отображения UI, а не живой API интеграции. AppTest refresh проверяет новый GET в том же mock-клиенте; сохранение после новой браузерной сессии и перезапуска сервера этим не доказано.
+Три LIVE-теста используют временные каталоги и завершают свои процессы. Остальные 64 проверки общего прогона принадлежат backend A (contracts/planning/storage/API/fixtures).
 
-## Зависимости, которые нельзя принять без backend
+## Проверка в браузере
 
-В этом checkout нет реализации API, worker, persistence, ingestion или forecasting. Поэтому ниже стоит BLOCKED независимо от результата локальных тестов.
+Backend `127.0.0.1:18000`, UI `127.0.0.1:8503`. Snapshot `demo-20260923-v1`, seed 42, as_of `2026-09-23T00:00:00Z`, run `run-b29d6c2644ee4e3ba31bdc11e68ef45f`. IEK-DEMO и SYSTEME-DEMO: 15 пригодных строк, DEMO-016 явно исключён из-за неизвестных условий.
 
-| Требование из общей приёмки | Статус | Причина и требуемая проверка |
-|---|---|---|
-| AT-01, AT-16: чистый полный запуск, детерминизм и reset всего MVP | BLOCKED | Нет backend A/B и общей поставки окружения; нужен запуск из чистого checkout. |
-| AT-02…AT-11: ingestion, detector, lost demand, netting и расчёт политики | BLOCKED | Mock содержит иллюстративные ответы; нужны независимые тесты настоящих вычислений. |
-| AT-12: ledger всех вычисленных строк после ручной правки | BLOCKED | Локальная сверка fixtures не доказывает backend ledger. |
-| AT-13: стоимость, единицы и бюджет на реальных расчётах | BLOCKED | Нужен backend с полными сопоставимыми ценами и budget enforcement. |
-| AT-14: серверные 403/409/422, audit, точная версия, persistence approval/export | BLOCKED | HTTP stub проверяет передачу ошибок, но не серверную бизнес-логику или хранение. |
-| AT-15: полный путь через живой API | BLOCKED | Нужны доступный backend URL, согласованные responses и прохождение UI без mock. |
+В proposal `53b81303-a126-594c-b17b-6e2f49bf7d86` строка DEMO-009 изменена 270 → 275 pcs с причиной «Проверка живого API на синтетических данных». Backend вернул draft v2 с ручной дельтой +5. Затем UI утвердил v2, получил серверный CSV и показал кнопку скачивания. Данные и учётная запись демонстрационные; поставщикам ничего не отправлялось.
 
-## Протокол будущего live-прохода
+## Оставшиеся границы
 
-Зафиксировать backend/frontend commit SHA, версии Python/Streamlit, seed, snapshot/run IDs и `as_of`. Пройти [пятиминутный сценарий](five-minute-demo.md), отдельно проверить export до approval, stale PATCH/approval, missing role, invalid quantity, mutation timeout и reload после approval. Сохранить только синтетические артефакты: обезличенный CSV с watermark и безопасные скриншоты/логи без token. После исправления повторять затронутые проверки; не переносить PASS mock в LIVE.
+- Backend A использует `fixture-v1`: ingestion/forecast, классификация проектов и восстановление спроса B пока не подключены. Предупреждение `FORECAST_PROVIDER_NOT_CONNECTED` видно. Demand-events LIVE возвращает пустой список с model_version; UI не создаёт фиктивные события. Таблица классификации проверена на synthetic mock.
+- AT-02…AT-06 и чувствительность к реальным данным не приняты этим отчётом. Fallback не доказывает качество модели, достигнутый сервис или экономию.
+- SS/ROP отсутствуют в scenario payload: UI отмечает отсутствие SS и показывает возвращённые количества/стоимость. A может добавить nullable поля.
+- Проверен Python 3.12.14; Python 3.11 отдельно не запускался. Общий uv.lock уже содержит Streamlit 1.64.0; файлы зависимостей A не менялись.
+- Полный релиз A/B/C требует интеграции B и общей приёмки. C имеет проверенный живой buyer workflow и показывает оставшиеся ограничения.

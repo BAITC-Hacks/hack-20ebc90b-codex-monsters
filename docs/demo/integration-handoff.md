@@ -1,17 +1,18 @@
-# Передача части C исполнителю A
+# Передача части C
 
-Реализованы C-01, клиентская часть C-02, C-03 и локальные проверки C-04. Живой проход C-02/C-04 остаётся зависимостью backend. Ветка `codex/ui-mvp`, код `5fab3ef59c437f1e3777b0ca32d6ccf2ef95e6d5`. Контракты v1 не изменялись; изменения только в `apps/buyer_ui`, `tests/ui`, `assets/demo`, `docs/demo`.
+UI `c0007e38253b102d8432bb02d4195aca44079292` совместим с backend A `d619ac2`. Работа перенесена в main по новым AGENTS.md. Общие контракты, зависимости и файлы A/B не правились.
 
-Работает: три вкладки, supplier proposals/ledger, правка по line_id с reason и expected_version, сверка версии/hash перед approval/export, скачивание неизменённых CSV bytes из HTTP, сценарии и явный snapshot/job/run workflow. HTTP не переходит на mock. Повторы export/scenario/planning сохраняют request key; неоднозначный PATCH требует сверки, а повтор POST snapshot без согласованной idempotency блокируется.
+Сданы: три вкладки, supplier proposals/ledger, редактирование line_id с reason/expected_version, свежая проверка version/hash перед approval/export, серверный CSV, реальные сценарные ответы и snapshot/job/run workflow. HTTP не переключается на mock; неоднозначные запросы не объявляются успешными.
 
-Проверка: 53 теста PASS на Python 3.12.14 + Streamlit 1.64.0, включая локальный HTTP stub и AppTest. [Полный отчёт](acceptance-report.md), [команды запуска](runbook.md). Mock использует подготовленные ответы и не заменяет расчёт, хранение или авторизацию A/B.
+Проверено: **123 теста** общего проекта, включая **3 настоящих HTTP/Streamlit integration tests**. Approval и идентичный CSV сохраняются после нового клиента, новой UI-сессии и перезапуска backend. [Отчёт](acceptance-report.md), [команды запуска](runbook.md).
 
-## Что требуется для интеграции
+UI согласован с фактическим payload A: `baseline_total_cost`, `baseline_base_qty/scenario_base_qty/delta_base_qty`, ключ SKU/supplier/warehouse вместо отсутствующего line_id. Единицы берутся из соответствующего proposal; неопределённые SS/ROP не подставляются. База сценария — исходный run/v1, ручные правки не объявляются базой what-if.
 
-1. Добавить Streamlit 1.64.0 в общие зависимости/lock и проверить Python 3.11. `client.disableDataExport` используется для отключения скачивания произвольной таблицы без approval; общий dependency-файл принадлежит A.
-2. Предоставить URL API, synthetic snapshot/run IDs, seed и as_of. Настройки UI: `BUYER_UI_MODE=http`, `BUYER_API_URL`, `BUYER_SNAPSHOT_ID`, `BUYER_RUN_ID`, `BUYER_SEED`. Необязательный `BUYER_API_TOKEN` передаётся только на адрес `BUYER_API_URL`.
-3. Сверить реальные JSON samples: envelope sources и demand-events, ProposalSummary, completed run, scenario summary/changed_lines. Эти части prose-контракта не полностью материализованы. UI принимает коллекции `items`, а для sources/demand-events также `sources`/`events`; неизвестные дополнительные поля сводки показывает как метаданные.
-4. Подтвердить seed завершённого run. UI использует возвращённый `seed`, иначе явно помеченный `BUYER_SEED`; текущий POST planning-runs не содержит поля seed. Для строгого сравнения серверу нужно подтвердить одинаковый seed базы и сценария. Snapshot/scope сверяются через proposal details.
-5. Выполнить LIVE-проверку edit → draft новой версии → approve → reload новой сессии → CSV, отрицательные 403/409/422 и timeout. Затем сценарий 99%/+7 дней на той же базе. Сервер должен выполнять расчёты и сохранять audit; это нельзя подтвердить локальным mock.
+## Оставшиеся зависимости
 
-Reset UI в mock очищает только текущую имитацию в памяти. Полный reset backend должен быть предоставлен A и ограничен demo-состоянием. Команды запуска backend в документации C не выдуманы.
+1. B: подключить ingestion, forecast и demand-events. Server fallback `fixture-v1` помечен, LIVE project table пустая. PASS mock-классификации не подтверждает реальный detector.
+2. A: при необходимости расширить run response nullable seed/policy/snapshot_id. UI сверяет snapshot через proposals, помечает request seed и показывает серверные assumptions. Это не блокирует проверенный buyer workflow.
+3. A: при необходимости добавить SS/ROP в scenario changed_lines. Сейчас показаны только возвращённые количества и стоимость.
+4. Команда: проверить Python 3.11 и frozen-lock запуск на другом checkout. Тесты выполнены на Python 3.12.14; uv.lock содержит Streamlit 1.64.0 для отключения встроенного экспорта таблиц.
+
+Mock reset очищает только имитацию текущей сессии. Для нового LIVE-демо можно остановить собственный backend и запустить его с новым выделенным EKT_DATA_DIR; UI не удаляет базы или файлы.
