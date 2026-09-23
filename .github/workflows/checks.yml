@@ -18,14 +18,16 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check src apps tests scripts
       - run: uv run pytest -q
-      - name: Real HTTP buyer workflow on synthetic data
+      - name: Combined application and real buyer workflow on synthetic data
         shell: bash
         run: |
-          uv run uvicorn ekt.api.app:app --host 127.0.0.1 --port 8000 > /tmp/ekt-api.log 2>&1 &
-          api_pid=$!
-          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
-          for attempt in {1..40}; do
-            if curl --fail --silent http://127.0.0.1:8000/v1/health > /dev/null; then break; fi
+          .venv/bin/python scripts/run_app.py > /tmp/ekt-app.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..120}; do
+            if .venv/bin/python scripts/check_health.py > /dev/null 2>&1; then break; fi
+            if ! kill -0 "$app_pid" 2>/dev/null; then cat /tmp/ekt-app.log; exit 1; fi
             sleep 0.25
           done
+          .venv/bin/python scripts/check_health.py || { cat /tmp/ekt-app.log; exit 1; }
           uv run python scripts/smoke_api.py

@@ -16,11 +16,15 @@ from apps.buyer_ui.secondary_views import render_data, render_scenarios  # noqa:
 from apps.buyer_ui.views import render_orders  # noqa: E402
 
 
+def _connection_locked():
+    return os.getenv("BUYER_LOCK_CONNECTION", "false").strip().lower() == "true"
+
+
 def _http_client(base_url):
     configured_url = os.getenv("BUYER_API_URL", "http://127.0.0.1:8000")
     token = os.getenv("BUYER_API_TOKEN")
-    if token and base_url.strip().rstrip("/") != configured_url.strip().rstrip("/"):
-        raise ValueError("Адрес API с учётными данными задаётся конфигурацией сервера.")
+    if (token or _connection_locked()) and base_url.strip().rstrip("/") != configured_url.strip().rstrip("/"):
+        raise ValueError("Адрес API задаётся конфигурацией сервера.")
     return HttpClient(base_url, timeout=10, token=token)
 
 
@@ -67,15 +71,21 @@ def main():
             st.caption("Демонстрационная учётная запись. Отправки поставщикам нет.")
     with settings.popover("Настройки", use_container_width=True):
         st.write("**Подключение**")
-        default_mode = os.getenv("BUYER_UI_MODE", "mock")
+        locked = _connection_locked()
+        default_mode = "http" if locked else os.getenv("BUYER_UI_MODE", "mock")
         if default_mode not in ("mock", "http"):
             st.error("BUYER_UI_MODE должен быть mock или http.")
             st.stop()
         mode = st.selectbox("Режим интерфейса", ("mock", "http"), index=0 if default_mode == "mock" else 1,
                             format_func=lambda value: "Демо: имитация API" if value == "mock" else "HTTP API",
-                            key="connection_mode")
-        base_url = st.text_input("Адрес API", value=os.getenv("BUYER_API_URL", "http://127.0.0.1:8000"),
-                                 key="connection_url", disabled=mode == "mock" or bool(os.getenv("BUYER_API_TOKEN")))
+                            key="connection_mode", disabled=locked)
+        configured_url = os.getenv("BUYER_API_URL", "http://127.0.0.1:8000")
+        base_url = st.text_input("Адрес API", value=configured_url,
+                                 key="connection_url", disabled=locked or mode == "mock" or bool(os.getenv("BUYER_API_TOKEN")))
+        if locked:
+            # Public sessions cannot choose a server-side request destination or mock mode.
+            # Enforce the server settings even if widget state was changed externally.
+            mode, base_url = "http", configured_url
         default_quality = os.getenv("BUYER_MOCK_QUALITY", "ready")
         if default_quality not in ("ready", "degraded", "blocked"):
             st.error("BUYER_MOCK_QUALITY должен быть ready, degraded или blocked.")

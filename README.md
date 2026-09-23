@@ -4,7 +4,50 @@
 
 Разработка ведётся **непосредственно в `main`**. Не создавать дополнительные ветки, worktree или PR. [Правила совместной работы](docs/mvp/git-workflow.md), [план команды](docs/mvp/README.md), [текущая готовность A и границы интеграции](docs/mvp/status-a.md).
 
-## Запуск backend
+## Быстрый запуск целого приложения
+
+С установленным Docker (на macOS/Windows запустить Docker Desktop):
+
+```bash
+docker compose up --build -d
+```
+
+Открыть [приложение](http://localhost:8501). Интерфейс подключён к настоящему
+API; SQLite, снимки и утверждения сохраняются в Docker volume `ekt-data`.
+Остановка: `docker compose down` (без `-v`, чтобы сохранить данные).
+
+Без Docker, с установленным [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```bash
+uv sync --frozen --python 3.12
+uv run python scripts/run_app.py
+```
+
+Та же [страница приложения](http://localhost:8501); API и Swagger доступны
+на `http://127.0.0.1:8000/docs`. Один `Ctrl+C` останавливает оба сервиса.
+Локальные данные сохраняются в `var/`. Запуск не требует секретов и использует
+синтетические демонстрационные данные. Параметры портов: `--port` и `--api-port`.
+Если `uv` установлен через pip, но не найден в PATH, заменить `uv` на `python3 -m uv`.
+
+## Публичная ссылка и облачный деплой
+
+Для временного живого демо без регистрации:
+
+```bash
+docker compose --profile share up --build -d
+docker compose logs tunnel
+```
+
+В логах появится HTTPS-ссылка `https://….trycloudflare.com`. Она работает,
+пока запущены компьютер, Docker и tunnel; после пересоздания tunnel адрес может
+измениться. Остановить только публичный доступ: `docker compose --profile share stop tunnel`.
+Это временная публикация локального приложения, а не независимый облачный сервер.
+
+Для работы без ноутбука использовать Dockerfile на Railway или VPS.
+Пошаговые настройки, хранение данных и проверка результата —
+[инструкция по деплою](docs/deployment.md).
+
+## Раздельный запуск backend и UI для разработки
 
 Нужны Python 3.11–3.12 и установленный `uv`. Из корня репозитория:
 

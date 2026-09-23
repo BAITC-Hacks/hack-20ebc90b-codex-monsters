@@ -1,0 +1,24 @@
+# Allowlist: corporate archives, raw data, credentials and local state never
+# enter the build context, even when already present in the Git repository.
+**
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+!apps/
+!apps/buyer_ui/
+!apps/buyer_ui/*.py
+!apps/buyer_ui/styles.css
+!assets/
+!assets/demo/
+!assets/demo/ui-fixtures/
+!assets/demo/ui-fixtures/bundle.json
+!.streamlit/
+!.streamlit/config.toml
+!scripts/
+!scripts/run_app.py
+!scripts/check_health.py
+!scripts/smoke_api.py
+**/__pycache__/
+**/*.pyc

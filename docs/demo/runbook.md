@@ -55,6 +55,7 @@ HTTP-демо содержит двух поставщиков, 15 пригод�
 | `BUYER_UI_MODE` | `mock` или `http`; по умолчанию `mock` |
 | `BUYER_API_URL` | Адрес backend; по умолчанию `http://127.0.0.1:8000` |
 | `BUYER_API_TOKEN` | Необязательный bearer token; только окружение, не поле полномочий пользователя |
+| `BUYER_LOCK_CONNECTION` | `true` для публичного демо: только HTTP и серверный `BUYER_API_URL`; по умолчанию `false` |
 | `BUYER_SNAPSHOT_ID` | Готовый snapshot ID; в mock `demo-snapshot`, в HTTP нужно выбрать явно |
 | `BUYER_RUN_ID` | Готовый run ID; в mock `demo-run`, в HTTP нужно выбрать явно |
 | `BUYER_SEED` | Seed сравнения, по умолчанию `42` |
@@ -67,6 +68,8 @@ BUYER_UI_MODE=http BUYER_API_URL=http://127.0.0.1:8000 .venv/bin/python -m strea
 ```
 
 Если backend требует token, передайте его через `BUYER_API_TOKEN`; не сохраняйте token в Git и не показывайте на скриншотах. При наличии token адрес закреплён за `BUYER_API_URL`: поле URL недоступно для редактирования, а серверная проверка не разрешает отправить учётные данные на другой адрес.
+
+Для публичного демо задайте `BUYER_LOCK_CONNECTION=true`. UI использует HTTP даже при локальном значении `BUYER_UI_MODE=mock`; переключатель режима и адрес API недоступны посетителю. Сервер применяет заданный `BUYER_API_URL` независимо от состояния этих полей. Без этой настройки локальный выбор mock/HTTP сохраняется. API остаётся внутренним сервисом; блокировка подключения не является авторизацией пользователя.
 
 Backend предоставляет [маршруты v1](../mvp/contracts.md#4-граница-backend--ui) и demo identity. Для другого экземпляра A предоставляет URL, готовые snapshot/run IDs и seed либо они создаются через UI. UI не выдаёт введённое человеком имя за роль approver.
 
