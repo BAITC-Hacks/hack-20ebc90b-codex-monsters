@@ -3,17 +3,17 @@ import os
 from pathlib import Path
 import sys
 
+import streamlit as st
+
 # Streamlit executes this file directly rather than as a package.
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import streamlit as st
-
-from apps.buyer_ui.client import ApiError, HttpClient, MockClient
-from apps.buyer_ui.formatting import show_api_error
-from apps.buyer_ui.secondary_views import render_data, render_scenarios
-from apps.buyer_ui.views import render_orders
+from apps.buyer_ui.client import ApiError, HttpClient, MockClient  # noqa: E402
+from apps.buyer_ui.formatting import show_api_error  # noqa: E402
+from apps.buyer_ui.secondary_views import render_data, render_scenarios  # noqa: E402
+from apps.buyer_ui.views import render_orders  # noqa: E402
 
 
 def _http_client(base_url):
@@ -44,7 +44,11 @@ def main():
     st.set_page_config(page_title="Закупки · CODEX MONSTERS", page_icon="📦", layout="wide")
     # A table download would omit the API's approval/version and DEMO watermark.
     # Keep the deliberate, backend-generated export as the sole CSV control.
-    st.set_option("client.disableDataExport", True)
+    if not st.get_option("client.disableDataExport"):
+        st.set_option("client.disableDataExport", True)
+        # Frontend config is sent before the script starts. Rerun before any
+        # table renders so the very first browser session also gets this flag.
+        st.rerun()
     st.title("Закупки с объяснением")
     st.caption("Предложения поставщикам · проверка покупателем · утверждённый CSV")
     with st.sidebar:

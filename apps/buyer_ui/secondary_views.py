@@ -127,7 +127,9 @@ def _budget_currency(proposals: list[dict[str, Any]]) -> str | None:
     return next(iter(currencies))
 
 
-def _show_scenario_comparison(scenario: dict[str, Any], currency: str | None) -> None:
+def _show_scenario_comparison(
+    scenario: dict[str, Any], currency: str | None, proposals: list[dict[str, Any]]
+) -> None:
     """Render optional server comparison fields, without manufacturing deltas."""
     summary = scenario.get("summary")
     changed = scenario.get("changed_lines")
@@ -146,18 +148,29 @@ def _show_scenario_comparison(scenario: dict[str, Any], currency: str | None) ->
         ):
             if base_key in summary or scenario_key in summary:
                 rows.append({"Показатель": title, "База": format_decimal(summary.get(base_key)), "Сценарий": format_decimal(summary.get(scenario_key))})
-        if "base_total_cost" in summary or "scenario_total_cost" in summary:
+        if any(key in summary for key in ("baseline_total_cost", "base_total_cost", "scenario_total_cost")):
             cost_currency = currency if summary.get("currency") == currency else None
-            rows.append({"Показатель": "Закупочная стоимость", "База": format_money(summary.get("base_total_cost"), cost_currency), "Сценарий": format_money(summary.get("scenario_total_cost"), cost_currency)})
+            baseline_cost = summary.get("baseline_total_cost", summary.get("base_total_cost"))
+            rows.append({"Показатель": "Закупочная стоимость", "База": format_money(baseline_cost, cost_currency), "Сценарий": format_money(summary.get("scenario_total_cost"), cost_currency)})
         if rows:
             st.dataframe(rows, hide_index=True, width="stretch")
     if isinstance(changed, list):
-        lines = {line["line_id"]: line for line in changed if isinstance(line, dict) and line.get("line_id")}
+        # API comparison rows use business identity, not generated proposal line IDs.
+        lines = {
+            line.get("line_id") or json.dumps([line.get("sku_id"), line.get("supplier_id"), line.get("warehouse_id")]): line
+            for line in changed if isinstance(line, dict) and line.get("sku_id")
+        }
         if lines:
-            selected_id = st.selectbox("Строка сравнения", list(lines), format_func=lambda value: f"{lines[value].get('sku_id', value)} · {lines[value].get('name', value)}", key=f"secondary_scenario_line_{scenario.get('id', 'result')}")
+            metadata = {
+                (line.get("sku_id"), proposal.get("supplier_id"), proposal.get("warehouse_id")): line
+                for proposal in proposals for line in proposal.get("lines", [])
+            }
+            selected_id = st.selectbox("Строка сравнения", list(lines), format_func=lambda value: " · ".join(str(lines[value][key]) for key in ("sku_id", "name", "supplier_id", "warehouse_id") if lines[value].get(key)), key=f"secondary_scenario_line_{scenario.get('id', 'result')}")
             line = lines[selected_id]
+            detail = metadata.get((line.get("sku_id"), line.get("supplier_id"), line.get("warehouse_id")), {})
             rows = []
             for title, base_key, scenario_key, uom in (
+                ("Заказ в базовой единице", "baseline_base_qty", "scenario_base_qty", line.get("base_uom") or detail.get("base_uom")),
                 ("Заказ", "base_purchase_qty", "scenario_purchase_qty", line.get("purchase_uom")),
                 ("Страховой запас", "base_safety_stock", "scenario_safety_stock", line.get("base_uom")),
                 ("Потребность до ограничений", "base_raw_need", "scenario_raw_need", line.get("base_uom")),
@@ -166,6 +179,10 @@ def _show_scenario_comparison(scenario: dict[str, Any], currency: str | None) ->
                     rows.append({"Показатель": title, "База": format_decimal(line.get(base_key)), "Сценарий": format_decimal(line.get(scenario_key)), "Единица": uom or "Не передана"})
             if rows:
                 st.dataframe(rows, hide_index=True, width="stretch")
+            if "delta_base_qty" in line:
+                st.caption(f"Изменение заказа из API: {format_decimal(line['delta_base_qty'], signed=True)} {line.get('base_uom') or detail.get('base_uom') or '(единица не передана)'}")
+            if not any(key in line for key in ("base_safety_stock", "scenario_safety_stock")):
+                st.caption("Страховой запас сценария не передан API; сравнение SS недоступно.")
     if summary is None:
         st.info("Сервер не вернул сводку сравнения.")
     with st.expander("Полный результат сравнения из API"):
@@ -211,16 +228,29 @@ def render_scenarios(client: Any) -> None:
     if saved and saved.get("base_versions") != versions:
         st.session_state.pop("_secondary_scenario", None)
         st.info("Версия базового предложения изменилась. Запустите новое сравнение.")
-    seed = base_run.get("seed", submitted_context.get("seed", st.session_state.get("base_seed", 42)))
+    seed = base_run.get("seed")
+    if seed is None:
+        seed = st.session_state.get("base_seed", 42)
     saved = st.session_state.get("_secondary_scenario")
     if saved and saved.get("request", {}).get("seed") != seed:
         st.session_state.pop("_secondary_scenario", None)
         st.info("Seed базового расчёта изменился. Прежнее сравнение скрыто.")
-    st.caption(f"Snapshot: {snapshot_id} · базовый run: {run_id} · seed: {seed}")
-    if "seed" not in base_run:
-        st.caption("Seed взят из конфигурации базового расчёта: API не возвращает его отдельным полем.")
+    st.caption(f"Snapshot: {snapshot_id} · базовый run: {run_id}")
+    if base_run.get("seed") is not None:
+        st.caption(f"Seed базового прогноза: {seed}")
+    else:
+        st.caption(f"Seed запроса сценария: {seed}. API не сообщает seed базового прогноза; сервер использует сохранённый прогноз базового run.")
+    if base_run.get("model_version"):
+        st.caption(f"Версия прогноза из API: {base_run['model_version']}")
     if proposals:
         _show_mode(proposals[0])
+    forecast_warnings = {
+        issue.get("message", issue.get("code")): issue
+        for proposal in proposals for line in proposal.get("lines", [])
+        for issue in line.get("warnings", [])
+        if isinstance(issue, dict) and issue.get("code") == "FORECAST_PROVIDER_NOT_CONNECTED"
+    }
+    show_issues(list(forecast_warnings.values()))
     currency = _budget_currency(proposals)
     policy = base_run.get("policy") or submitted_context.get("policy")
     with st.expander("Базовые параметры и ограничения"):
@@ -230,7 +260,7 @@ def render_scenarios(client: Any) -> None:
             st.info("Параметры базовой политики не переданы API.")
         for proposal in proposals:
             st.write(f"Поставщик: {proposal.get('supplier_id', '—')} · склад: {proposal.get('warehouse_id', '—')}")
-            st.write(f"Стоимость базы: {format_money(proposal.get('total_cost'), proposal.get('currency'))}")
+            st.write(f"Стоимость текущего предложения: {format_money(proposal.get('total_cost'), proposal.get('currency'))}")
             show_issues(proposal.get("warnings", []))
             for reason in proposal.get("capabilities", {}).get("reasons", []):
                 st.caption(str(reason))
@@ -288,8 +318,9 @@ def render_scenarios(client: Any) -> None:
     if scenario.get("status") != "succeeded":
         return
     st.write("**База / Сценарий**")
+    st.caption("База — исходный результат завершённого расчёта. Ручные правки предложений не входят в базу сценария.")
     st.json({"base_policy": policy, "scenario_overrides": selected["request"]["overrides"]})
-    _show_scenario_comparison(scenario, currency)
+    _show_scenario_comparison(scenario, currency, proposals)
     st.caption("Риск дефицита, потерянная маржа, экономия и достигнутый сервис не оценены интерфейсом. Оценка доступна только при наличии соответствующего поля в серверной сводке выше.")
     if scenario.get("assumptions"):
         with st.expander("Допущения сценария"):
@@ -313,13 +344,16 @@ def _render_snapshot_job(client: Any) -> None:
         _show_job(job, "Создание snapshot")
         if job.get("status") != "succeeded":
             return
-        snapshot_id = _snapshot_from_ref(job.get("result_ref"))
+        snapshot_id = job.get("snapshot_id") or _snapshot_from_ref(job.get("result_ref"))
         if not snapshot_id:
             st.info("Задание завершено. API не вернул распознаваемую ссылку на snapshot; выберите его по ID ниже.")
             if job.get("result_ref"):
                 st.code(str(job["result_ref"]))
             return
         snapshot = client.get_snapshot(snapshot_id)
+        if snapshot.get("snapshot_id") != snapshot_id:
+            st.error("API вернул snapshot с другим ID; результат импорта не выбран.")
+            return
         _show_mode(snapshot)
         show_quality(snapshot.get("quality", {}))
         if st.button("Использовать готовый snapshot", key="secondary_use_created_snapshot"):
@@ -410,7 +444,7 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
                     st.error("API не вернул run ID. Повтор с прежними параметрами использует тот же request key.")
                 else:
                     _select_run(result["run_id"])
-                    st.session_state.setdefault("_secondary_run_contexts", {})[result["run_id"]] = {"snapshot_id": snapshot["snapshot_id"], "policy": policy, "seed": st.session_state.get("base_seed", 42)}
+                    st.session_state.setdefault("_secondary_run_contexts", {})[result["run_id"]] = {"snapshot_id": snapshot["snapshot_id"], "policy": policy}
                     st.rerun()
             except ApiError as error:
                 show_api_error(error)

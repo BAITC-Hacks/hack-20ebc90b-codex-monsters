@@ -184,6 +184,71 @@ class SecondaryViewsTests(unittest.TestCase):
         self.assertNotIn("_secondary_scenario", app.session_state)
         self.assertTrue(any("положительный конечный бюджет" in item.value for item in app.error))
 
+    def test_backend_scenario_business_keys_and_baseline_cost_are_rendered(self):
+        app = self.app("render_scenarios")
+        client = app.session_state["client"]
+        # Current public run schema omits policy/seed and may omit snapshot_id.
+        for key in ("policy", "seed", "snapshot_id"):
+            client._fixture["run"].pop(key, None)
+        client._fixture["run"]["model_version"] = "fixture-v1"
+        client._proposals["demo-proposal-tools"]["lines"][0]["warnings"].append({
+            "code": "FORECAST_PROVIDER_NOT_CONNECTED", "severity": "warning",
+            "message": "Прогноз fixture-v1 — временное синтетическое приближение.",
+        })
+        backend_result = deepcopy(client._fixture["scenarios"][0])
+        for key in ("seed", "snapshot_id", "overrides", "warnings"):
+            backend_result.pop(key, None)
+        backend_result["summary"] = {
+            "baseline_total_cost": "13800.00", "scenario_total_cost": "15000.00",
+            "delta_cost": "1200.00", "currency": "KZT", "changed_line_count": 1,
+        }
+        backend_result["changed_lines"] = [
+            {"sku_id": "TOOL-001", "supplier_id": "demo-supplier-tools", "warehouse_id": "demo-wh",
+             "baseline_base_qty": "108", "scenario_base_qty": "120", "delta_base_qty": "12",
+             "baseline_cost": "10800.00", "scenario_cost": "12000.00"},
+            {"sku_id": "TOOL-001", "supplier_id": "demo-supplier-tools", "warehouse_id": "other-wh",
+             "baseline_base_qty": "20", "scenario_base_qty": "20", "delta_base_qty": "0",
+             "baseline_cost": "2000.00", "scenario_cost": "2000.00"},
+        ]
+        # Attach the actual proposal warehouse; identity must keep the second row distinct.
+        backend_result["changed_lines"][0]["warehouse_id"] = client._proposals["demo-proposal-tools"]["warehouse_id"]
+        client.get_scenario = lambda scenario_id: deepcopy(backend_result)
+        self.submit(app, "Рассчитать сценарий")
+        self.assertEqual(app.session_state["_secondary_scenario"]["request"]["seed"], 42)
+        self.assertTrue(any("API не сообщает seed" in item.value for item in app.caption))
+        self.assertTrue(any("fixture-v1" in item.value for item in app.caption))
+        self.assertTrue(any("временное синтетическое приближение" in item.value for item in app.warning))
+        self.assertEqual(next(metric.value for metric in app.metric if metric.label == "Изменённых строк"), "1")
+        selector = app.selectbox(key="secondary_scenario_line_demo-scenario-service")
+        self.assertEqual(len(selector.options), 2)
+        rows = [row for table in app.dataframe for row in table.value.to_dict("records")]
+        self.assertIn({"Показатель": "Закупочная стоимость", "База": "13\u202f800.00 KZT", "Сценарий": "15\u202f000.00 KZT"}, rows)
+        self.assertIn({"Показатель": "Заказ в базовой единице", "База": "108", "Сценарий": "120", "Единица": "шт"}, rows)
+        self.assertTrue(any("Изменение заказа из API: +12 шт" in item.value for item in app.caption))
+        self.assertTrue(any("сравнение SS недоступно" in item.value for item in app.caption))
+
+    def test_snapshot_job_uses_explicit_snapshot_id_without_result_ref(self):
+        app = self.app("render_data")
+        client = app.session_state["client"]
+        client._fixture["snapshot_job"].update(snapshot_id="demo-snapshot", result_ref=None)
+        app.session_state["_secondary_snapshot_job"] = "demo-snapshot-job"
+        app.run()
+        self.clean(app)
+        self.assertFalse(app.button(key="secondary_use_created_snapshot").disabled)
+
+    def test_snapshot_job_cannot_select_unexpected_snapshot(self):
+        app = self.app("render_data")
+        client = app.session_state["client"]
+        client._fixture["snapshot_job"].update(snapshot_id="unexpected-snapshot", result_ref=None)
+        original = client.get_snapshot
+        client.get_snapshot = lambda snapshot_id: original("demo-snapshot")
+        app.session_state["_secondary_snapshot_job"] = "demo-snapshot-job"
+        app.run()
+        self.clean(app)
+        self.assertFalse(any(button.key == "secondary_use_created_snapshot" for button in app.button))
+        self.assertTrue(any("другим ID" in item.value for item in app.error))
+        self.assertEqual(app.session_state["snapshot_id"], "demo-snapshot")
+
 
 if __name__ == "__main__":
     unittest.main()
