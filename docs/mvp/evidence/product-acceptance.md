@@ -9,9 +9,10 @@
 
 | Проверка | Результат |
 |---|---|
-| `uv run pytest -q` | 373 passed, 71 subtests passed; одна deprecation warning в httpx/Starlette test transport |
+| `uv run pytest -q` | 380 passed, 71 subtests passed после интеграции Railway workflow; одна deprecation warning в httpx/Starlette test transport |
 | `uv run ruff check src apps tests scripts` | PASS |
 | `git diff --check` | PASS |
+| `scripts/prepare_deploy.py --ref HEAD` | Экспорт 50 runtime-файлов; без исходных книг, архивов, локальной БД и секретов |
 | Единый запуск `uv run python scripts/run_app.py` | API 8000 + UI 8501, health обоих сервисов; рабочий каталог сохраняется |
 | Браузер | План, объяснения, русские предупреждения, источники, фоновая загрузка; desktop и 390 px; обычный режим без JSON/кода/technical controls |
 | Настоящий HTTP + forecast provider | Учебный снимок → план → правка → утверждение → CSV; what-if не меняет исходный заказ |
@@ -63,3 +64,6 @@
 Для A/B/C: после получения main перезапустить оба процесса; пользоваться новым
 README и docs/demo/runbook.md. Контракты расширены совместимо. Сырые файлы,
 локальные БД, реальные строки и тестовые CSV в commit не включаются.
+Основной пакет: `be4c481`; сведения о Railway от коллеги `d390de7` сохранены
+обычным merge `6c7b1cb`. Текущая версия запущена локально; этот пакет не выполнял
+повторный деплой Railway. Автодеплой по push в существующей конфигурации отсутствует.
