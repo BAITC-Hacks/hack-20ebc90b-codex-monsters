@@ -9,9 +9,9 @@ htmlcov/
 .env
 .env.*
 !.env.example
-data/
-var/
-outputs/
+/data/
+/var/
+/outputs/
 *.sqlite*
 *.db
 *.xlsx

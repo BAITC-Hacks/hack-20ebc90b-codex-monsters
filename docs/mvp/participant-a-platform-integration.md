@@ -1,21 +1,23 @@
 # Исполнитель A: пользовательский Codex — backend, расчёт заказа, интеграция
 
+Текущая реализация и interfaces: [status-a.md](status-a.md). Ниже исходный план задач, а не подтверждение полной приёмки.
+
 ## Миссия и границы
 
 Собрать три независимые части в работающий продукт до6:00. Пользователь принимает продуктовые решения, Codex выполняет этот план. Отсчёт T0=2:15, весь срок225мин; не перезапускать отсчёт после прочтения. Источники правды: [master-plan.md](master-plan.md), [contracts.md](contracts.md), [acceptance-demo.md](acceptance-demo.md).
 
-Владение: `src/ekt/contracts/**`, `src/ekt/planning/**`, `src/ekt/api/**`, `src/ekt/storage/**`, `tests/contracts/**`, `tests/planning/**`, `tests/api/**`, `tests/integration/**`, `tests/fixtures/**`, корневые deps/lock/config/Docker/CI/README. Не писать вместо B importer/forecast и вместо C Streamlit. Shared changes принимать сразу маленькими PR; A — единственный merge owner.
+Владение: `src/ekt/contracts/**`, `src/ekt/planning/**`, `src/ekt/api/**`, `src/ekt/storage/**`, `tests/contracts/**`, `tests/planning/**`, `tests/api/**`, `tests/integration/**`, `tests/fixtures/**`, корневые deps/lock/config/Docker/CI/README. Не писать вместо B importer/forecast и вместо C Streamlit. Shared changes публиковать небольшими проверенными commits в main; A координирует интеграцию.
 
 ## A01. Foundation, до T+35
 
-1. Проверить рабочую ветку, существующие изменения и актуальность общего плана. Создать свою feature branch `codex/platform-integration` от общей согласованной базы.
+1. Проверить `main`, существующие изменения и актуальность общего плана. По указанию пользователя не создавать ветки, worktree или PR; сохранять чужую работу.
 2. Создать Python package layout, pyproject и один lock; FastAPI/Streamlit runtime, DuckDB/Parquet, data-read libs, pytest. Не ставить Celery/Redis/Kubernetes.
 3. Материализовать MVP Pydantic contracts и agreed enums, отдельно Date/Decimal serialization и domain errors. Определить один публичный snapshot reader/registry, чтобы B не угадывал storage.
 4. Seeded fixture factory 12–20 SKU/2 suppliers/1warehouse, variants для acceptance. Raw oracle labels только в tests, не в detector payload.
 5. Sample responses на реальные schema типы: ready/blocked snapshot, job status, proposal detail, scenario result, error. C получает их сразу; B — fixture schema.
 6. Backend health и skeleton jobs/storage, простой demo actor из server config. `.env.example` без секретов; `.gitignore` исключает raw data/DB/cache/outputs/secrets.
 
-DoD: другой участник устанавливает окружение по lock, импортирует schemas, validates samples. `tests/contracts` проверяет Quantity/Date/enums/invariants. Shared files в первом небольшом PR. Не ждать всей бизнес-логики, чтобы дать основу команде.
+DoD: другой участник устанавливает окружение по lock, импортирует schemas, validates samples. `tests/contracts` проверяет Quantity/Date/enums/invariants. Shared files в первом небольшом commit в main. Не ждать всей бизнес-логики, чтобы дать основу команде.
 
 ## A02. Policy и XAI, T+35–105
 
@@ -58,14 +60,14 @@ DoD/tests: unconstrained raw target nondecreasing95→99; final packs могут
 
 ## A06. Сборка и release, T+150–205
 
-- По мере готовности merge маленькие B/C PR. Держать main запускаемым; не включать неготовые feature paths.
+- По мере готовности интегрировать небольшие commits B/C в main. Держать main запускаемым; не включать неготовые feature paths.
 - Прогнать общую acceptance таблицу с независимыми fixtures, numerical testsB и buyer interactionsC.
 - README: dependencies, local source-config, safe demo command, API/UI launch, tests, limitations, replay date. Пример будущих команд согласовать и реально проверить; не выдавать неподдерживаемые команды за готовые.
 - Docker Compose если не отнимает время от runnable local path; одна проверенная portable последовательность обязательна, два launch способа не обязательны.
 - CI на synthetic inputs: lint/import/schema/meaningful tests. Secrets/raw data не нужны. Dependency/install без сети на демонстрации заранее проверить.
 - Feature freeze T+185 (5:20). Fresh-clone smoke или чистое окружение одного teammate. Release SHA и evidence T+205 (5:40), последние20мин только репетиция.
 
-## PR-порядок
+## Порядок checkpoints в main
 
 1. `A01 foundation/contracts`: shared skeleton/types/fixtures; быстро согласовать с B/C.
 2. `A02+A03 first vertical`: actual forecast→order→HTTP; интеграция C.
@@ -73,14 +75,14 @@ DoD/tests: unconstrained raw target nondecreasing95→99; final packs могут
 4. `A05 scenarios`: отдельная фича, не destabilize baseline.
 5. `A06 integration/release`: только glue/tests/docs fixes.
 
-B/C ветки после каждой слитой основы подтягивают main. Не rebase чужую branch и не force-push main. Мердж shared-file конфликтов решает A после чтения обеих сторон.
+B/C обновляют свои main после каждого общего checkpoint. Новые ветки/worktree/PR не создавать; не делать force-push. Конфликты shared files решает A после чтения обеих сторон.
 
 ## Передача результата
 
-В каждом PR: что работает, tests/команды и результат, data limitations, что требуется B/C, какая schema version. На checkpoint сообщать: commit SHA; runnable behavior; blockers с минимальным воспроизведением; next deliverable. Перед релизом пользователь должен увидеть живой walkthrough, а не список реализованных функций.
+При передаче каждого commit: что работает, tests/команды и результат, data limitations, что требуется B/C, какая schema version. На checkpoint сообщать: commit SHA; runnable behavior; blockers с минимальным воспроизведением; next deliverable. Перед релизом пользователь должен увидеть живой walkthrough, а не список реализованных функций.
 
 ## Стартовый prompt для Codex A
 
 ```text
-Ты исполнитель A этого репозитория. Реализуй docs/mvp/participant-a-platform-integration.md по docs/mvp/master-plan.md и contracts.md. Всего у команды было225мин с2:15 до6:00; уточни оставшееся время по текущему контексту, не перезапускай таймер. Начни с A01 и дай B/C shared types/samples, затем первый actual end-to-end run. Работай только в своих каталогах, не подменяй B forecasting и C UI. Создавай маленькие PR/checkpoints; пользователь принимает scope, ты владеешь технической интеграцией. Реальный ERP/vendor send не делать; synthetic маркировать; не коммитить supplier raw data/секреты. Тестируй meaningful invariants и сообщай готовый runnable результат. Если первое живое соединение не работает, приоритет integration bug, а не новая фича. Внешнюю коммуникацию участникам выполняй только при отдельном поручении; готовь ссылки и handoff заметки в repo.
+Ты исполнитель A этого репозитория. Реализуй docs/mvp/participant-a-platform-integration.md по docs/mvp/master-plan.md и contracts.md. Всего у команды было225мин с2:15 до6:00; уточни оставшееся время по текущему контексту, не перезапускай таймер. Начни с A01 и дай B/C shared types/samples, затем первый actual end-to-end run. Работай только в своих каталогах, не подменяй B forecasting и C UI. Работай прямо в main, без новых веток/worktree/PR. Делай небольшие проверенные commits/checkpoints; пользователь принимает scope, ты владеешь технической интеграцией. Реальный ERP/vendor send не делать; synthetic маркировать; не коммитить supplier raw data/секреты. Тестируй meaningful invariants и сообщай готовый runnable результат. Если первое живое соединение не работает, приоритет integration bug, а не новая фича. Внешнюю коммуникацию участникам выполняй только при отдельном поручении; готовь ссылки и handoff заметки в repo.
 ```

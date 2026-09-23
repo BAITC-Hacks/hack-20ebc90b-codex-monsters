@@ -605,6 +605,11 @@ class PlanningRunStatus(JobStatus):
     proposal_ids: list[ID] = Field(default_factory=list)
     quality: QualityReport | None = None
     forecast_id: ID | None = None
+    as_of: AwareDatetime | None = None
+    seed: int | None = None
+    policy: PlanningPolicy | None = None
+    snapshot_manifest_hash: str | None = None
+    forecast_hash: str | None = None
 
 
 class ProposalEdit(Contract):

@@ -29,6 +29,9 @@ from ekt.contracts import (
     ScenarioAccepted,
     ScenarioStatus,
     SnapshotManifest,
+    HealthResponse,
+    SourceMetadata,
+    SourcePage,
     SnapshotRequest,
 )
 from ekt.storage import (
@@ -86,13 +89,13 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
     async def not_found(request, exc):
         return JSONResponse(status_code=404, content={"code": "NOT_FOUND", "message": "Объект не найден", "details": {}, "retryable": False})
 
-    @application.get("/v1/health")
+    @application.get("/v1/health", response_model=HealthResponse)
     def health(request: Request):
         return {"status": "ok", "version": __version__, "identity_mode": "demo", "actor": service(request).actor, "role": service(request).role, "vendor_transmission_enabled": False}
 
-    @application.get("/v1/sources")
+    @application.get("/v1/sources", response_model=SourcePage)
     def sources(request: Request):
-        return service(request).list_sources()
+        return {"items": [{key: value for key, value in source.items() if key in SourceMetadata.model_fields} for source in service(request).list_sources()["items"]]}
 
     @application.post("/v1/snapshots", status_code=202, response_model=JobAccepted)
     def create_snapshot(body: SnapshotRequest, request: Request):
@@ -112,7 +115,10 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
 
     @application.get("/v1/planning-runs/{run_id}", response_model=PlanningRunStatus)
     def run(run_id: str, request: Request):
-        return public_job(service(request).job(run_id), PlanningRunStatus)
+        value = service(request).job(run_id)
+        if value["kind"] != "run":
+            raise ServiceError("NOT_FOUND", "Расчёт не найден", 404)
+        return public_job(value, PlanningRunStatus)
 
     @application.get("/v1/proposals", response_model=ProposalPage)
     def proposals(request: Request, run_id: str | None = None, supplier_id: str | None = None, limit: int = Query(50, ge=1, le=200), cursor: str | None = None):
@@ -141,7 +147,10 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
 
     @application.get("/v1/scenarios/{scenario_id}", response_model=ScenarioStatus)
     def scenario(scenario_id: str, request: Request):
-        return public_job(service(request).job(scenario_id), ScenarioStatus)
+        value = service(request).job(scenario_id)
+        if value["kind"] != "scenario":
+            raise ServiceError("NOT_FOUND", "Сценарий не найден", 404)
+        return public_job(value, ScenarioStatus)
 
     @application.get("/v1/planning-runs/{run_id}/demand-events", response_model=DemandEventPage)
     def demand_events(run_id: str, request: Request, label: str | None = None, limit: int = Query(50, ge=1, le=200), cursor: str | None = None):
