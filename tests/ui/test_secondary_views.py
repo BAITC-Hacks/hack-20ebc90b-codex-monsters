@@ -55,18 +55,24 @@ class JobStatusTests(unittest.TestCase):
                 record = {"id": "synthetic-job", "status": status, "stage": "loading", "progress": progress,
                           "created_at": "2026-09-23T10:00:00+05:00", "updated_at": "2026-09-23T10:15:00+05:00"}
                 if status == "failed":
-                    record["error"] = {"code": "SOURCE_UNAVAILABLE", "message": "Источник данных недоступен."}
+                    record["error"] = {"code": "SOURCE_UNAVAILABLE", "message": "Источник данных недоступен.",
+                                       "details": {"reasons": ["Подключите доступный источник."],
+                                                   "internal_payload": {"trace": "INTERNAL_DIAGNOSTIC_ONLY"}}}
                 app = self.app(record)
                 text = "\n".join(str(item.value) for kind in
-                                 ("markdown", "caption", "error", "success", "warning", "info")
+                                 ("markdown", "caption", "error", "success", "warning", "info", "text")
                                  for item in getattr(app, kind))
                 self.assertIn(expected, text.lower())
                 self.assertFalse(list(app.json))
+                self.assertFalse(list(app.code))
+                self.assertFalse(any("для поддержки" in panel.label.casefold() for panel in app.expander))
+                self.assertNotIn("INTERNAL_DIAGNOSTIC_ONLY", text)
                 self.assertIn("23.09.2026, 10:00 (UTC+05:00)", text)
                 self.assertIn("23.09.2026, 10:15 (UTC+05:00)", text)
                 self.assertEqual([bar.proto.value for bar in app.get("progress")], expected_bars)
                 if status == "failed":
                     self.assertTrue(any("Источник данных недоступен." in item.value for item in app.error))
+                    self.assertIn("Подключите доступный источник.", text)
                 else:
                     self.assertFalse(list(app.error))
 
@@ -307,8 +313,7 @@ class SecondaryViewsTests(unittest.TestCase):
         client.get_scenario = lambda scenario_id: deepcopy(backend_result)
         self.submit(app, "Сравнить варианты")
         self.assertEqual(app.session_state["_secondary_scenario"]["request"]["seed"], 42)
-        self.assertTrue(any("API не сообщает seed" in item.value for item in app.caption))
-        self.assertTrue(any("fixture-v1" in item.value for item in app.json))
+        self.assertFalse(list(app.json))
         self.assertTrue(any("временное синтетическое приближение" in item.value for item in app.warning))
         self.assertEqual(next(metric.value for metric in app.metric if metric.label == "Изменённых строк"), "1")
         selector = app.selectbox(key="secondary_scenario_line_demo-scenario-service")

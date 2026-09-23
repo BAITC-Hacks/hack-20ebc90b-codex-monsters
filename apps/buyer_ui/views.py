@@ -96,8 +96,6 @@ def _ledger(line):
                     ("pack_multiple_purchase", "Кратность упаковки", line["purchase_uom"]),
                     ("conversion", "Базовых единиц в упаковке", line["base_uom"]))]
         st.dataframe(rows, hide_index=True, width="stretch")
-    with st.expander("Для поддержки: данные товара"):
-        st.json(line)
 
 
 def _notices(proposal):
@@ -351,9 +349,6 @@ def render_orders(client):
                 _approval_and_export(client, proposal, reviewed)
                 _summary_details(proposal)
                 st.caption("CSV содержит весь заказ выбранному поставщику. Отправки поставщику нет.")
-                with st.expander("Для поддержки: сведения о заказе"):
-                    st.json({key: proposal.get(key) for key in
-                             ("proposal_id", "run_id", "snapshot_id", "version", "content_hash", "mode", "as_of", "capabilities")})
         st.session_state[review_key] = {key: proposal[key] for key in
                                       ("proposal_id", "version", "content_hash", "run_id", "snapshot_id")}
     except ApiError as error:

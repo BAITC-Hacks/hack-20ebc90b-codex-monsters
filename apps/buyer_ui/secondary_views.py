@@ -12,7 +12,7 @@ from uuid import uuid4
 import streamlit as st
 
 from .client import ApiError
-from .formatting import format_date, format_decimal, format_money, format_uom, show_api_error, show_issues, show_quality
+from .formatting import format_date, format_decimal, format_money, format_uom, show_api_error, show_error_details, show_issues, show_quality
 from .presentation import section_heading
 
 
@@ -104,20 +104,9 @@ def _show_job(record: dict[str, Any], title: str) -> None:
         error = record.get("error")
         if isinstance(error, dict):
             st.error(error.get("message", "Не удалось завершить расчёт. Обратитесь в поддержку."))
+            show_error_details(error.get("details"))
         else:
             st.error("Не удалось завершить выполнение. Обратитесь в поддержку: причина ошибки не получена.")
-    error = record.get("error") or {}
-    if record.get("id") or record.get("stage") or error:
-        with st.expander(f"Для поддержки · {title.lower()}"):
-            if record.get("id"):
-                st.text(f"Номер задания: {record['id']}")
-            if record.get("stage"):
-                st.text(f"Код этапа: {record['stage']}")
-            if isinstance(error, dict) and error.get("code"):
-                st.text(f"Код ошибки: {error['code']}")
-            if isinstance(error, dict) and error.get("details"):
-                st.caption("Технические подробности ошибки")
-                st.json(error["details"])
 
 
 def _show_policy(title: str, policy: Any, currency: str | None = None) -> None:
@@ -239,8 +228,6 @@ def _show_scenario_comparison(
                 st.caption("Данные о страховом запасе для нового варианта отсутствуют — сравнить его пока нельзя.")
     if summary is None:
         st.info("Сервер не вернул сводку сравнения.")
-    with st.expander("Для поддержки · диагностика результата сравнения"):
-        st.json({"changed_lines": changed, "summary": summary, "assumptions": scenario.get("assumptions")})
 
 
 def render_scenarios(client: Any) -> None:
@@ -327,11 +314,6 @@ def _render_scenario_workspace(client: Any) -> None:
         if not currency:
             st.caption("Лимит недоступен: нужны цены всех товаров в одной валюте и поддержка сервера.")
         submitted = st.form_submit_button("Сравнить варианты", type="primary")
-    with st.expander("Для поддержки · диагностика сравнения"):
-        st.json({"snapshot_id": snapshot_id, "run_id": run_id, "seed": seed,
-                 "model_version": base_run.get("model_version"), "policy": policy})
-        if base_run.get("seed") is None:
-            st.caption("API не сообщает seed базового прогноза; сервер использует сохранённый прогноз исходного расчёта.")
     if submitted:
         st.session_state.pop("_secondary_scenario", None)
         overrides: dict[str, Any] = {"service_target": target, "lead_time_delay_days": delay}
@@ -392,7 +374,7 @@ def _render_scenario_workspace(client: Any) -> None:
 
 
 def _render_snapshot_job(client: Any) -> None:
-    with st.expander("Для поддержки · восстановить подготовку данных"):
+    with st.expander("Продолжить подготовку данных"):
         with st.form("secondary_resume_job"):
             job_id = st.text_input("Номер задания подготовки данных", key="secondary_resume_job_id")
             if st.form_submit_button("Наблюдать за заданием") and job_id.strip():
@@ -409,9 +391,6 @@ def _render_snapshot_job(client: Any) -> None:
         snapshot_id = job.get("snapshot_id") or _snapshot_from_ref(job.get("result_ref"))
         if not snapshot_id:
             st.info("Подготовка завершена, но ссылка на готовые данные не получена. Обратитесь в поддержку или выберите готовый набор по его номеру.")
-            if job.get("result_ref"):
-                with st.expander("Для поддержки · ссылка на подготовленные данные"):
-                    st.code(str(job["result_ref"]))
             return
         snapshot = client.get_snapshot(snapshot_id)
         if snapshot.get("snapshot_id") != snapshot_id:
@@ -450,11 +429,8 @@ def _render_sources_and_import(client: Any) -> None:
                             format_func=lambda value: "Синтетические данные для демонстрации" if value == "synthetic_demo" else "Предпросмотр реальных данных", key="secondary_import_mode")
         as_of = st.text_input("Данные на дату и время", value=st.session_state.get("as_of", "2026-09-01T00:00:00+00:00"), key="secondary_as_of",
                               help="Дата с часовым поясом, например 2026-09-23T10:00:00+05:00. Используются сведения, известные к этому моменту.")
-        with st.expander("Для поддержки · настройки подготовки данных"):
-            mapping = st.text_input("Версия сопоставления полей", value=st.session_state.get("mapping_version", "1.0"), key="secondary_mapping")
+        mapping = st.session_state.get("mapping_version", "1.0")
         create = st.form_submit_button("Подготовить данные", disabled=not source_ids)
-    with st.expander("Для поддержки · диагностика источников"):
-        st.json(response)
     if create:
         if not chosen or not mapping.strip():
             st.error("Выберите хотя бы один источник. Если версия сопоставления полей не задана, обратитесь к ответственному за данные.")
@@ -474,7 +450,7 @@ def _render_sources_and_import(client: Any) -> None:
                     st.session_state["_secondary_snapshot_job"] = prior["job_id"]
                     st.info("Этот запрос уже принят. Продолжаем наблюдение за его заданием.")
                 elif prior and prior.get("ambiguous"):
-                    st.warning("Результат предыдущей отправки неизвестен; повтор не отправлен. Для продолжения укажите в разделе «Для поддержки» подтверждённый номер задания или готового набора данных.")
+                    st.warning("Результат предыдущей отправки неизвестен; повтор не отправлен. В разделе «Продолжить подготовку данных» укажите подтверждённый номер задания или выберите готовый набор данных.")
                 else:
                     try:
                         with st.spinner("Передаём данные на подготовку…"):
@@ -503,14 +479,13 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
         target = target_column.selectbox("Цель: цикл без дефицита", [0.95, 0.99], format_func=lambda v: f"{v:.0%}", key="secondary_base_target",
                                          help="Вероятность пройти цикл поставки без нехватки товара. Это цель расчёта, а не гарантия.")
         delay = delay_column.selectbox("Задержка поставщика", [0, 7, 14], format_func=lambda v: "Без задержки" if v == 0 else f"{v} дней", key="secondary_base_delay")
-        with st.popover("Версия правил расчёта", type="tertiary", help="Служебная настройка для поддержки"):
-            policy_version = st.text_input("Версия политики", value=st.session_state.get("policy_version", "1.0"), key="secondary_policy_version")
+        policy_version = st.session_state.get("policy_version", "1.0")
         delay_label = "без задержки" if delay == 0 else f"задержка {delay} дней"
         st.caption(f"Цель: {target:.0%}, {delay_label}.")
         start = st.form_submit_button("Рассчитать заказ", disabled=not can_plan, type="primary")
     if start:
         if not policy_version.strip():
-            st.error("Укажите версию политики.")
+            st.error("Правила расчёта не настроены. Обратитесь к ответственному за данные.")
         else:
             policy = {"service_metric": "cycle_service", "service_target": target, "lead_time_delay_days": delay, "policy_version": policy_version.strip()}
             payload = {"snapshot_id": snapshot["snapshot_id"], "policy": policy}
@@ -629,11 +604,6 @@ def _render_projects(client: Any) -> None:
     if right.button("Следующая страница событий", disabled=not next_cursor or next_cursor in cursors, key="secondary_events_next"):
         cursors.append(next_cursor)
         st.rerun()
-    if isinstance(response, dict):
-        diagnostics = {key: value for key, value in response.items() if key not in ("items", "events", "next_cursor")}
-        if diagnostics:
-            with st.expander("Для поддержки · диагностика классификации"):
-                st.json(diagnostics)
 
 
 def render_data(client: Any) -> None:
@@ -662,7 +632,7 @@ def _render_data_workspace(client: Any) -> None:
         if not snapshot:
             st.write("**Выберите источники**")
         _render_sources_and_import(client)
-        with st.expander("Для поддержки · выбрать готовые данные по номеру"):
+        with st.expander("Выбрать готовый набор данных"):
             with st.form("secondary_select_snapshot", border=False):
                 selected_id = st.text_input("Номер набора данных", value=snapshot_id or "", key="secondary_snapshot_input")
                 select = st.form_submit_button("Выбрать данные")
@@ -682,6 +652,3 @@ def _render_data_workspace(client: Any) -> None:
     with st.expander("Разовые продажи"):
         st.caption("Дополнительная проверка: посмотрите, какие разовые продажи отделены от регулярного спроса.")
         _render_projects(client)
-    if snapshot:
-        with st.popover("Для поддержки: выбранные данные", type="tertiary"):
-            st.json(snapshot)

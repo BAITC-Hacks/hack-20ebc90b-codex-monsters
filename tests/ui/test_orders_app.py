@@ -58,12 +58,82 @@ class OrdersAppTests(unittest.TestCase):
         # Human message is an error element; its protocol code lives in a caption.
         return "\n".join(str(item.value) for item in [*self.app.error, *self.app.caption])
 
+    def assert_no_diagnostics(self):
+        self.assert_no_crash()
+        self.assertFalse(list(self.app.json))
+        self.assertFalse(list(self.app.code))
+        diagnostics = [panel.label for panel in self.app.expander
+                       if any(word in panel.label.casefold() for word in
+                              ("для поддержки", "диагност", "техническ", "подробности ошибки"))]
+        self.assertEqual(diagnostics, [])
+
+    def visible_text(self):
+        return "\n".join(str(item.value) for kind in
+                         ("markdown", "caption", "error", "success", "warning", "info", "text")
+                         for item in getattr(self.app, kind))
+
     def test_task_navigation_and_explicit_mock_label(self):
         self.assertEqual(self.app.radio(key="workspace_page").options, ["План закупки", "Сравнение вариантов", "Данные"])
         self.assertTrue(any("Демо: имитация API" in str(item.value) for item in self.app.caption))
         self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
         self.assertNotIn("order_download", self.app.session_state)
         self.assertEqual(self.app.selectbox(key=f"line_picker:{PROPOSAL}").value, "line-tools")
+
+    def test_all_workspaces_keep_business_warnings_and_actions_without_diagnostics(self):
+        client = self.client()
+        limitation = "Срок поставки оценён по демонстрационным условиям."
+        client._proposals[PROPOSAL]["warnings"].append({
+            "code": "DEMO_DELIVERY_ASSUMPTION", "severity": "warning", "message": limitation,
+        })
+        base = self.proposal()
+        self.app.run()
+        self.assert_no_diagnostics()
+        self.assertIn(limitation, self.visible_text())
+        self.assertFalse(self.app.button(key=f"approve:{PROPOSAL}").disabled)
+        self.assertTrue(list(self.app.dataframe))
+
+        self.app.radio(key="workspace_page").set_value("Данные").run()
+        self.assert_no_diagnostics()
+        self.assertTrue(any("синтетическ" in item.value.casefold() for item in self.app.caption))
+        self.assertFalse(self.button("Рассчитать заказ").disabled)
+        self.assertTrue(self.app.multiselect(key="secondary_sources").options)
+
+        self.app.radio(key="workspace_page").set_value("Что, если…").run()
+        self.assert_no_diagnostics()
+        self.assertIn(limitation, self.visible_text())
+        self.assertFalse(self.button("Сравнить варианты").disabled)
+        self.button("Сравнить варианты").click().run()
+        self.assert_no_diagnostics()
+        self.assertTrue(any(metric.label == "Изменённых строк" for metric in self.app.metric))
+        comparison_rows = [row for table in self.app.dataframe for row in table.value.to_dict("records")]
+        self.assertTrue(any(row.get("Показатель") == "Закупочная стоимость" for row in comparison_rows))
+        self.assertFalse(any("Утвердить" in button.label or "CSV" in button.label for button in self.app.button))
+        self.assertEqual(self.proposal(), base)
+
+        self.app.radio(key="workspace_page").set_value("Заказы").run()
+        self.assert_no_diagnostics()
+        self.assertIn(limitation, self.visible_text())
+        self.assertFalse(self.app.button(key=f"approve:{PROPOSAL}").disabled)
+        self.assertEqual(self.proposal(), base)
+
+    def test_api_error_keeps_actionable_reasons_and_draft_without_raw_details(self):
+        def rejected(*_args, **_kwargs):
+            raise ApiError(422, "INVALID_QUANTITY", "Не удалось сохранить количество.", {
+                "reasons": ["Количество должно быть кратно упаковке."], "current_version": 1,
+                "internal_payload": {"trace": "INTERNAL_DIAGNOSTIC_ONLY"},
+            })
+
+        self.client().edit_proposal = rejected
+        self.edit("109", "Уточнённая потребность")
+        self.assert_no_diagnostics()
+        self.assertIn("Не удалось сохранить количество.", self.errors())
+        self.assertIn("Количество должно быть кратно упаковке.", self.visible_text())
+        self.assertNotIn("INTERNAL_DIAGNOSTIC_ONLY", self.visible_text())
+        self.assertEqual(self.app.text_input(key=f"qty:{IDENTITY}").value, "109")
+        self.assertEqual(self.app.text_area(key=f"reason:{IDENTITY}").value, "Уточнённая потребность")
+        self.assertFalse(self.button("Сохранить количество").disabled)
+        self.assertEqual(self.proposal()["version"], 1)
+        self.assertEqual(self.proposal()["status"], "draft")
 
     def test_builtin_table_export_is_disabled_to_preserve_approval_gate(self):
         # Streamlit's dataframe menu must not bypass the approved API CSV flow.

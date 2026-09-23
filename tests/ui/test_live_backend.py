@@ -270,6 +270,9 @@ class LiveBackendTests(unittest.TestCase):
 
             def clean():
                 self.assertFalse(list(app.exception), [str(error.value) for error in app.exception])
+                self.assertFalse(list(app.json))
+                self.assertFalse(list(app.code))
+                self.assertFalse(any("для поддержки" in panel.label.casefold() for panel in app.expander))
 
             def click(label):
                 choices = [button for button in app.button if button.label == label]
@@ -342,7 +345,7 @@ class LiveBackendTests(unittest.TestCase):
             self.assertEqual(Decimal(quantity_row["Сценарий"].replace("\u202f", "")),
                              Decimal(compared["scenario_base_qty"]))
             self.assertNotEqual(quantity_row["Единица"], "Не передана")
-            self.assertTrue(any("Страховой запас сценария не передан API" in item.value
+            self.assertTrue(any("Данные о страховом запасе для нового варианта отсутствуют" in item.value
                                 for item in app.caption))
             # A fresh UI session recovers approval from HTTP, not previous session_state.
             with patch.dict(os.environ, {"BUYER_SNAPSHOT_ID": job["result_ref"], "BUYER_RUN_ID": run_id}):

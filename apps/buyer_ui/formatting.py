@@ -84,11 +84,27 @@ def show_api_error(error):
         st.warning("Исправьте указанные поля или условия. Количество не округлялось интерфейсом.")
     elif status == 403:
         st.warning("У текущей серверной учётной записи нет полномочий на это действие.")
-    details = getattr(error, "details", None)
-    if details:
-        with st.expander("Для поддержки: подробности ошибки"):
-            st.json(details)
+    show_error_details(getattr(error, "details", None))
     st.caption(f"Код: {getattr(error, 'code', 'UNKNOWN')}" + (f" · HTTP {status}" if status else ""))
+
+
+def show_error_details(details):
+    """Present actionable error fields, never raw responses or diagnostic trees."""
+    if not isinstance(details, dict):
+        return
+    reasons = details.get("reasons")
+    for reason in reasons if isinstance(reasons, list) else []:
+        if isinstance(reason, str):
+            st.warning(reason)
+    version = details.get("current_version")
+    if isinstance(version, int) and not isinstance(version, bool):
+        st.caption(f"Текущая версия заказа: {version}.")
+    errors = details.get("errors")
+    for error in errors if isinstance(errors, list) else []:
+        if isinstance(error, dict):
+            message = error.get("msg") or error.get("message")
+            if isinstance(message, str):
+                st.warning(message)
 
 
 def show_quality(quality):
