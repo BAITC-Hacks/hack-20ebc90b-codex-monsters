@@ -281,7 +281,7 @@ class LiveBackendTests(unittest.TestCase):
             clean()
             self.assertTrue(st.get_option("client.disableDataExport"))
             self.assertIsInstance(app.session_state["client"], HttpClient)
-            self.assertEqual(app.radio(key="workspace_page").options, ["Заказы", "Что, если…", "Данные"])
+            self.assertEqual(app.radio(key="workspace_page").options, ["План закупки", "Сравнение вариантов", "Данные"])
             click("Перейти к данным")
             app.multiselect(key="secondary_sources").set_value(["synthetic-demo"])
             app.text_input(key="secondary_as_of").set_value(SNAPSHOT_REQUEST["as_of"])
@@ -295,7 +295,7 @@ class LiveBackendTests(unittest.TestCase):
             run_id = app.session_state["run_id"]
             completed(lambda: self.client.get_planning_run(run_id))
             click("Обновить статус расчёта")
-            click("Открыть заказы")
+            click("Открыть план закупки")
             proposal_id = app.session_state["proposal_id"]
             proposal = self.client.get_proposal(proposal_id)
             line_id = app.selectbox(key=f"line_picker:{proposal_id}").value

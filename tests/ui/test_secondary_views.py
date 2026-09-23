@@ -27,6 +27,75 @@ VIEW(st.session_state["client"])
 '''
 
 
+JOB_HARNESS = '''
+import streamlit as st
+from apps.buyer_ui.secondary_views import _show_job
+_show_job(st.session_state["job"], "Подготовка данных")
+'''
+
+
+@unittest.skipUnless(AppTest is not None, "Streamlit required for job status tests")
+class JobStatusTests(unittest.TestCase):
+    def app(self, record):
+        app = AppTest.from_string(JOB_HARNESS, default_timeout=15)
+        app.session_state["job"] = record
+        app.run()
+        self.assertFalse(list(app.exception), [item.message for item in app.exception])
+        return app
+
+    def test_job_states_are_readable_without_json_and_show_only_active_progress(self):
+        cases = (
+            ("queued", "в очереди", 0.0, [0]),
+            ("running", "выполняется", 0.35, [35]),
+            ("succeeded", "готово", 1.0, []),
+            ("failed", "не удалось завершить", 0.35, []),
+        )
+        for status, expected, progress, expected_bars in cases:
+            with self.subTest(status=status):
+                record = {"id": "synthetic-job", "status": status, "stage": "loading", "progress": progress,
+                          "created_at": "2026-09-23T10:00:00+05:00", "updated_at": "2026-09-23T10:15:00+05:00"}
+                if status == "failed":
+                    record["error"] = {"code": "SOURCE_UNAVAILABLE", "message": "Источник данных недоступен."}
+                app = self.app(record)
+                text = "\n".join(str(item.value) for kind in
+                                 ("markdown", "caption", "error", "success", "warning", "info")
+                                 for item in getattr(app, kind))
+                self.assertIn(expected, text.lower())
+                self.assertFalse(list(app.json))
+                self.assertIn("23.09.2026, 10:00 (UTC+05:00)", text)
+                self.assertIn("23.09.2026, 10:15 (UTC+05:00)", text)
+                self.assertEqual([bar.proto.value for bar in app.get("progress")], expected_bars)
+                if status == "failed":
+                    self.assertTrue(any("Источник данных недоступен." in item.value for item in app.error))
+                else:
+                    self.assertFalse(list(app.error))
+
+    def test_missing_or_invalid_progress_does_not_become_a_completion_percentage(self):
+        for progress in (None, -0.1, 1.1, "0.5", float("nan")):
+            with self.subTest(progress=progress):
+                app = self.app({"status": "running", "progress": progress})
+                self.assertFalse(list(app.get("progress")))
+                self.assertFalse(list(app.json))
+
+    def test_timestamps_keep_the_supplied_clock_and_make_missing_information_explicit(self):
+        from apps.buyer_ui.secondary_views import _format_timestamp
+
+        cases = (
+            (None, "Не указано"),
+            ("", "Не указано"),
+            ("not-a-date", "Дата не распознана"),
+            ("2026-02-30T10:15:00Z", "Дата не распознана"),
+            ("2026-09-23T10:15:00+05:00", "23.09.2026, 10:15 (UTC+05:00)"),
+            ("2026-09-23T05:15:00Z", "23.09.2026, 05:15 (UTC+00:00)"),
+            ("2026-09-23T01:45:00-03:30", "23.09.2026, 01:45 (UTC-03:30)"),
+            ("2026-09-23T10:15:00", "23.09.2026, 10:15 (часовой пояс не указан)"),
+            ("2026-09-23", "23.09.2026 (время не указано)"),
+        )
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(_format_timestamp(value), expected)
+
+
 @unittest.skipUnless(AppTest is not None, "Streamlit required for UI transition tests")
 class SecondaryViewsTests(unittest.TestCase):
     def app(self, view):
@@ -72,7 +141,7 @@ class SecondaryViewsTests(unittest.TestCase):
         client.create_scenario = timeout_once
         self.submit(app, "Сравнить варианты")
         self.assertNotIn("_secondary_scenario", app.session_state)
-        self.assertTrue(any("неизвестен" in item.value for item in app.warning))
+        self.assertTrue(any("не получен" in item.value for item in app.warning))
         self.submit(app, "Сравнить варианты")
         self.assertEqual(attempts[0], attempts[1])
         self.assertIn("_secondary_scenario", app.session_state)
@@ -92,7 +161,7 @@ class SecondaryViewsTests(unittest.TestCase):
         app.run()
         self.clean(app)
         self.assertNotIn("_secondary_scenario", app.session_state)
-        self.assertTrue(any("другому snapshot" in item.value for item in app.error))
+        self.assertTrue(any("другому набору данных" in item.value for item in app.error))
 
     def test_budget_disabled_without_top_level_capability(self):
         app = self.app("render_scenarios")
@@ -137,6 +206,29 @@ class SecondaryViewsTests(unittest.TestCase):
         self.submit(app, "Подготовить данные")
         self.assertEqual(len(calls), 1)
         self.assertEqual(app.session_state["run_id"], "demo-run")
+
+    def test_import_must_succeed_before_its_snapshot_can_be_selected(self):
+        app = self.app("render_data")
+        client = app.session_state["client"]
+        job = client._fixture["snapshot_job"]
+        app.session_state["snapshot_id"] = None
+        app.session_state["_secondary_snapshot_job"] = "demo-snapshot-job"
+        for status in ("queued", "running", "failed"):
+            with self.subTest(status=status):
+                job.update(status=status)
+                if status == "failed":
+                    job["error"] = {"code": "IMPORT_FAILED", "message": "Не удалось прочитать источник."}
+                app.run()
+                self.clean(app)
+                self.assertFalse(any(button.key == "secondary_use_created_snapshot" for button in app.button))
+                self.assertIsNone(app.session_state["snapshot_id"])
+        job.update(status="succeeded", error=None)
+        app.run()
+        self.clean(app)
+        self.submit(app, "Использовать эти данные")
+        self.assertEqual(app.session_state["snapshot_id"], "demo-snapshot")
+        self.assertIsNone(app.session_state["run_id"])
+        self.assertTrue(any(button.label == "Рассчитать заказ" and not button.disabled for button in app.button))
 
     def test_project_pagination_resets_on_filter_change(self):
         app = self.app("render_data")
@@ -224,8 +316,8 @@ class SecondaryViewsTests(unittest.TestCase):
         rows = [row for table in app.dataframe for row in table.value.to_dict("records")]
         self.assertIn({"Показатель": "Закупочная стоимость", "База": "13\u202f800 KZT", "Сценарий": "15\u202f000 KZT"}, rows)
         self.assertIn({"Показатель": "Заказ в базовой единице", "База": "108", "Сценарий": "120", "Единица": "шт"}, rows)
-        self.assertTrue(any("Изменение заказа из API: +12 шт" in item.value for item in app.caption))
-        self.assertTrue(any("сравнение SS недоступно" in item.value for item in app.caption))
+        self.assertTrue(any("Изменение количества: +12 шт" in item.value for item in app.caption))
+        self.assertTrue(any("Данные о страховом запасе для нового варианта отсутствуют" in item.value for item in app.caption))
 
     def test_snapshot_job_uses_explicit_snapshot_id_without_result_ref(self):
         app = self.app("render_data")

@@ -59,7 +59,7 @@ class OrdersAppTests(unittest.TestCase):
         return "\n".join(str(item.value) for item in [*self.app.error, *self.app.caption])
 
     def test_task_navigation_and_explicit_mock_label(self):
-        self.assertEqual(self.app.radio(key="workspace_page").options, ["Заказы", "Что, если…", "Данные"])
+        self.assertEqual(self.app.radio(key="workspace_page").options, ["План закупки", "Сравнение вариантов", "Данные"])
         self.assertTrue(any("Демо: имитация API" in str(item.value) for item in self.app.caption))
         self.assertFalse(any(b.label == "Подготовить CSV" for b in self.app.button))
         self.assertNotIn("order_download", self.app.session_state)

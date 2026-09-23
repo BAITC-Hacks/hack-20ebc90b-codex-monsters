@@ -42,12 +42,8 @@ def _summary(proposal):
     approved = proposal.get("status") == "approved"
     status_badge("Утверждён" if approved else "Ожидает вашей проверки", approved)
     st.metric("Сумма к закупке", format_money(proposal.get("total_cost"), proposal.get("currency")))
-    if approved:
-        st.html('<p class="buyer-next">Следующий шаг — скачать CSV</p>'
-                '<p class="buyer-next-detail">Выгрузите утверждённую версию заказа.</p>')
-    else:
-        st.html('<p class="buyer-next">Решение — за вами</p>'
-                '<p class="buyer-next-detail">Проверьте количество и объяснения, затем утвердите заказ целиком.</p>')
+    st.caption("Заказ утверждён. Можно подготовить файл для скачивания." if approved else
+               "Проверьте товары перед утверждением. Количество можно изменить ниже.")
 
 
 def _summary_details(proposal):
@@ -78,16 +74,19 @@ def _ledger(line):
                f"в заказе {format_decimal(line.get('selected_purchase_qty'))} {unit}".rstrip(".") + ".")
     if line.get("projected_stockout_date"):
         st.warning(f"Ожидаемый дефицит с {format_date(line['projected_stockout_date'])}.")
-    with st.expander("Почему столько рекомендовано"):
-        ledger = [{"Что учтено": item["label"],
-                   "Количество": format_decimal(item.get("delta_base_qty"), signed=True, places=3),
-                   "Ед.": format_uom(line["base_uom"])}
-                  for item in line.get("explanation", [])]
-        if ledger:
-            st.dataframe(ledger, hide_index=True, width="stretch")
-            st.caption("Расчёт сервера. Для чтения значения округлены до трёх знаков; точные значения — ниже.")
-        else:
-            st.warning("Сервер не вернул объяснение количества.")
+    st.write("**Как рассчитано количество**")
+    ledger = [{"Что учтено": item["label"],
+               "Количество": format_decimal(item.get("delta_base_qty"), signed=True, places=3),
+               "Ед.": format_uom(line["base_uom"])}
+              for item in line.get("explanation", [])]
+    if ledger:
+        st.dataframe(ledger, hide_index=True, width="stretch", row_height=34,
+                     height=min(480, len(ledger) * 34 + 38))
+        st.caption("Значения в таблице округлены до трёх знаков.")
+    else:
+        st.warning("Объяснение количества не получено. Обновите заказ или обратитесь в поддержку.")
+    show_issues(line.get("warnings"))
+    with st.expander("Запас и условия закупки"):
         rows = [{"Показатель": label, "Значение": format_decimal(line.get(field), places=3), "Ед.": format_uom(uom)}
                 for field, label, uom in (
                     ("safety_stock", "Страховой запас", line["base_uom"]),
@@ -97,9 +96,8 @@ def _ledger(line):
                     ("pack_multiple_purchase", "Кратность упаковки", line["purchase_uom"]),
                     ("conversion", "Базовых единиц в упаковке", line["base_uom"]))]
         st.dataframe(rows, hide_index=True, width="stretch")
-        show_issues(line.get("warnings"))
-        with st.expander("Точные значения и источники"):
-            st.json(line)
+    with st.expander("Для поддержки: данные товара"):
+        st.json(line)
 
 
 def _notices(proposal):
@@ -129,8 +127,7 @@ def _edit(client, proposal, line):
     uncertain = draft.get("uncertain", False)
     stale = draft["version"] != proposal["version"]
     if uncertain:
-        st.warning("Результат предыдущей правки неизвестен. Сверьте количество, версию и ручную дельту "
-                   "на сервере перед новой отправкой. Автоматического повтора PATCH нет.")
+        st.warning("Не удалось подтвердить сохранение. Обновите заказ и проверьте количество перед повторной правкой.")
     if stale:
         st.warning(f"Черновик относится к версии {draft['version']}; сервер вернул {proposal['version']}. "
                    "Сохранённый ввод не применён к новой версии.")
@@ -157,7 +154,7 @@ def _edit(client, proposal, line):
             st.error("Укажите причину изменения.")
             return
         if not qty.strip():
-            st.error("Укажите количество десятичной строкой, например 120 или 2.5.")
+            st.error("Укажите количество, например 120 или 2.5.")
             return
         try:
             with st.spinner("Сохраняем количество…"):
@@ -312,7 +309,7 @@ def render_orders(client):
         with st.container(key="order_columns"):
             working, summary = st.columns([2.35, 1], gap="medium")
             with working, st.container(key="order_workspace"):
-                section_heading(2, "Товары к закупке", "Начните с позиций с риском дефицита.")
+                section_heading(None, "Товары к закупке")
                 _context(proposal)
                 _notices(proposal)
                 search, filters = st.columns([3, 2])
@@ -337,9 +334,12 @@ def render_orders(client):
                         st.session_state[key] = lines[0]["line_id"]
                     line_id = st.selectbox("Товар", list(by_line), key=key,
                                           format_func=lambda value: f"{by_line[value]['name']} ({by_line[value]['sku_id']})")
-                    _ledger(by_line[line_id])
-                    with st.expander("Изменить количество"):
-                        _edit(client, proposal, by_line[line_id])
+                    with st.container(key="item_columns"):
+                        explanation, editing = st.columns([1.25, 1], gap="medium")
+                        with explanation:
+                            _ledger(by_line[line_id])
+                        with editing:
+                            _edit(client, proposal, by_line[line_id])
                 else:
                     st.info("Товары не найдены. Измените название или фильтр срочности.")
                     st.caption("Фильтр меняет только отображение. Утверждается весь заказ.")
@@ -351,7 +351,7 @@ def render_orders(client):
                 _approval_and_export(client, proposal, reviewed)
                 _summary_details(proposal)
                 st.caption("CSV содержит весь заказ выбранному поставщику. Отправки поставщику нет.")
-                with st.expander("Технические сведения о заказе"):
+                with st.expander("Для поддержки: сведения о заказе"):
                     st.json({key: proposal.get(key) for key in
                              ("proposal_id", "run_id", "snapshot_id", "version", "content_hash", "mode", "as_of", "capabilities")})
         st.session_state[review_key] = {key: proposal[key] for key in

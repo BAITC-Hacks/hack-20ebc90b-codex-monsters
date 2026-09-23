@@ -50,21 +50,14 @@
 .st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:focus-visible) {outline: 2px solid var(--buyer-focus); outline-offset: -3px;}
 
 .buyer-intro {padding: 0.65rem 0 0.5rem;}
-.buyer-intro-copy p {color: var(--buyer-muted); margin: 0.6rem 0 1.1rem; max-width: 65ch;}
-.buyer-route {display: flex; align-items: center; flex-wrap: wrap; list-style: none; gap: 0.85rem 1.35rem; margin: 0; padding: 0;}
-.stApp .buyer-route, .stApp .buyer-summary-list {margin: 0; padding: 0;}
-.buyer-route li {display: flex; gap: 0.5rem; align-items: center; color: var(--buyer-muted); font-size: 0.875rem;}
-.buyer-route li:not(:last-child)::after {content: ""; height: 1px; width: 2.25rem; margin-left: 0.85rem; background: var(--buyer-line);}
-.buyer-step-number {display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--buyer-line); border-radius: 50%; font-size: 0.8rem; font-variant-numeric: tabular-nums;}
-.buyer-route .current {color: var(--buyer-accent); font-weight: 600;}
-.buyer-route .current .buyer-step-number {background: var(--buyer-accent); color: var(--buyer-on-accent); border-color: var(--buyer-accent);}
+.buyer-intro-copy p {color: var(--buyer-muted); margin: 0.6rem 0 0; max-width: 65ch;}
+.stApp .buyer-summary-list {margin: 0; padding: 0;}
 
 /* Single functional surfaces: a working document and its approval summary. */
 .st-key-order_workspace, .st-key-order_summary, .st-key-scenario_workspace, .st-key-data_workspace, .st-key-empty_order {
   background: var(--buyer-surface); border: 1px solid var(--buyer-line);
   border-radius: var(--buyer-radius); padding: 1.4rem;
 }
-.st-key-order_summary {border-top: 3px solid var(--buyer-accent);}
 .buyer-section-heading {display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.2rem 0 0.5rem;}
 .buyer-section-number {display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; color: var(--buyer-accent); background: var(--buyer-soft); border-radius: 8px; font-size: 0.875rem; font-weight: 600;}
 .buyer-section-heading h2 {margin: 0; color: var(--buyer-ink);}
@@ -77,8 +70,6 @@
 .buyer-summary-list {padding: 0; margin: 0.3rem 0; list-style: none;}
 .buyer-summary-list li {display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--buyer-line); color: var(--buyer-muted); font-size: 0.875rem;}
 .buyer-summary-list strong {color: var(--buyer-ink); font-weight: 600; text-align: right; overflow-wrap: anywhere;}
-.buyer-next {margin: 0; color: var(--buyer-ink); font-weight: 600;}
-.buyer-next-detail {color: var(--buyer-muted); font-size: 0.875rem; margin: 0.25rem 0 0.75rem;}
 [data-testid="stMetricValue"] {color: var(--buyer-ink); font-size: 1.8rem; font-weight: 650; letter-spacing: -0.025em; font-variant-numeric: tabular-nums;}
 [data-testid="stMetricLabel"] {color: var(--buyer-muted);}
 [data-testid="stForm"] {border: 0; padding: 0;}
@@ -93,7 +84,7 @@
 .stMain button[kind]:disabled {opacity: 0.48; cursor: not-allowed;}
 .stMain button[kind]:focus-visible, .stMain summary:focus-visible {outline: 2px solid var(--buyer-focus); outline-offset: 3px;}
 .stMain input, .stMain textarea {font-size: 1rem; caret-color: var(--buyer-accent);}
-.stMain [data-baseweb="input"], .stMain [data-baseweb="textarea"], .stMain [data-baseweb="select"] > div {border-color: var(--buyer-line); border-radius: 8px; background: var(--buyer-surface);}
+.stMain [data-baseweb="input"], .stMain [data-baseweb="textarea"], .stMain [data-baseweb="select"] > div {border: 1px solid var(--buyer-line); border-radius: 8px; background: var(--buyer-surface);}
 .stMain [data-baseweb="input"]:focus-within, .stMain [data-baseweb="textarea"]:focus-within, .stMain [data-baseweb="select"]:focus-within > div {border-color: var(--buyer-accent);}
 .stMain ::selection {background: var(--buyer-accent); color: var(--buyer-on-accent);}
 .buyer-footer {display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-top: 1.75rem; margin-top: 1rem; border-top: 1px solid var(--buyer-line); color: var(--buyer-muted); font-size: 0.75rem;}
@@ -108,10 +99,14 @@
   .stMain button[kind]:not(:disabled):active {transform: none;}
 }
 @media (prefers-contrast: more) {.stApp {--buyer-line: light-dark(#71818d, #a4b4bf);}}
+@media (max-width: 1100px) {
+  .st-key-item_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {flex-flow: column nowrap;}
+  .st-key-item_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {width: 100%; max-width: 100%; flex: 0 0 auto;}
+}
 @media (max-width: 900px) {
   .stMainBlockContainer {padding-inline: 1.25rem;}
-  .st-key-order_columns > [data-testid="stHorizontalBlock"] {flex-direction: column;}
-  .st-key-order_columns > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {width: 100%; flex: 1 1 100%;}
+  .st-key-order_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"], .st-key-item_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {flex-flow: column nowrap;}
+  .st-key-order_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"], .st-key-item_columns > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {width: 100%; max-width: 100%; flex: 0 0 auto;}
 }
 @media (max-width: 640px) {
   .stMainBlockContainer {padding: 1rem 0.875rem 2rem;}
@@ -120,11 +115,8 @@
   .st-key-buyer_header [data-testid="stColumn"]:first-child {flex: 1 1 100%;}
   .st-key-buyer_header [data-testid="stColumn"]:not(:first-child) {flex: 1 1 40%; min-width: 0;}
   .buyer-intro {padding-top: 0.75rem;}
-  .buyer-intro-copy p {margin-bottom: 1.1rem;}
-  .buyer-route {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: stretch;}
-  .buyer-route li {flex-direction: column; align-items: flex-start; font-size: 0.75rem; gap: 0.4rem;}
-  .buyer-route li:not(:last-child)::after {display: none;}
   .st-key-workspace_navigation [role="radiogroup"] {gap: 0;}
-  .st-key-workspace_navigation [data-testid="stRadioOption"] {padding-inline: 0.85rem;}
+  .st-key-workspace_navigation [data-testid="stRadioOption"] {padding-inline: 0.6rem; flex: 1; min-width: 0;}
+  .st-key-workspace_navigation [data-testid="stRadioOption"] p {font-size: 0.8rem; line-height: 1.35;}
   .st-key-order_workspace, .st-key-order_summary, .st-key-scenario_workspace, .st-key-data_workspace, .st-key-empty_order {padding: 1rem;}
 }
