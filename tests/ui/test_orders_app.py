@@ -106,6 +106,21 @@ class OrdersAppTests(unittest.TestCase):
         self.assertEqual(len(requests), 1)
         self.assertEqual(requests[0]["edits"], [{"line_id": "line-tools", "purchase_qty": "120"}])
 
+    def test_empty_search_reset_restores_items_without_changing_order(self):
+        original = self.proposal()
+        self.app.text_input(key="order_search").set_value("Несуществующий артикул 999999")
+        self.app.selectbox(key="urgency_filter").select("critical").run()
+        self.assert_no_crash()
+        self.assertTrue(any("Товары не найдены" in item.value for item in self.app.info))
+
+        self.button("Сбросить поиск и фильтр").click().run()
+        self.assert_no_crash()
+        self.assertEqual(self.app.text_input(key="order_search").value, "")
+        self.assertEqual(self.app.selectbox(key="urgency_filter").value, "Все")
+        self.assertFalse(any("Товары не найдены" in item.value for item in self.app.info))
+        self.assertEqual(self.app.selectbox(key=f"line_picker:{PROPOSAL}").value, "line-tools")
+        self.assertEqual(self.proposal(), original)
+
     def test_edit_approve_refresh_export_then_edit_invalidates_download(self):
         self.edit("120")
         self.assertEqual(self.proposal()["version"], 2)

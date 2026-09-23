@@ -1,11 +1,13 @@
 """Supplier proposal review, edit, approval and backend-generated CSV."""
 from decimal import Decimal, InvalidOperation
+from html import escape
 from uuid import uuid4
 
 import streamlit as st
 
 from .client import ApiError
 from .formatting import format_date, format_decimal, format_money, format_uom, show_api_error, show_issues
+from .presentation import section_heading, status_badge
 from .workflow import approve_reviewed, export_reviewed
 
 URGENCY = {"Все": "Все товары", "critical": "Критично", "soon": "Скоро", "routine": "Планово"}
@@ -23,11 +25,7 @@ def _draft_dirty(draft):
 
 
 def _context(proposal):
-    status = "Утверждён" if proposal.get("status") == "approved" else "Ожидает проверки"
-    summary, total = st.columns([3, 2])
-    summary.subheader(f"{len(proposal.get('lines', []))} позиций в заказе")
-    summary.caption(f"{status}. Версия {proposal['version']}. Данные на {format_date(proposal.get('as_of'))}.")
-    total.metric("Сумма заказа", format_money(proposal.get("total_cost"), proposal.get("currency")))
+    st.caption(f"Данные на {format_date(proposal.get('as_of'))} · Версия {proposal['version']}")
     if proposal.get("mode") == "synthetic_demo":
         missing = any(w.get("code") == "FORECAST_PROVIDER_NOT_CONNECTED"
                       for line in proposal.get("lines", []) for w in line.get("warnings", []))
@@ -37,6 +35,31 @@ def _context(proposal):
         st.caption(text + ". CSV не является заказом поставщику.")
     else:
         st.caption("Предпросмотр реальных данных. Учитывайте ограничения источников.")
+
+
+def _summary(proposal):
+    st.subheader("Итог заказа")
+    approved = proposal.get("status") == "approved"
+    status_badge("Утверждён" if approved else "Ожидает вашей проверки", approved)
+    st.metric("Сумма к закупке", format_money(proposal.get("total_cost"), proposal.get("currency")))
+    if approved:
+        st.html('<p class="buyer-next">Следующий шаг — скачать CSV</p>'
+                '<p class="buyer-next-detail">Выгрузите утверждённую версию заказа.</p>')
+    else:
+        st.html('<p class="buyer-next">Решение — за вами</p>'
+                '<p class="buyer-next-detail">Проверьте количество и объяснения, затем утвердите заказ целиком.</p>')
+
+
+def _summary_details(proposal):
+    lines = proposal.get("lines", [])
+    critical = sum(line.get("urgency") == "critical" for line in lines)
+    rows = (("Поставщик", proposal.get("supplier_id", "—")),
+            ("Склад", proposal.get("warehouse_id", "—")),
+            ("Позиций в заказе", len(lines)),
+            ("Критичных позиций", critical))
+    st.html('<ul class="buyer-summary-list">' + ''.join(
+        f'<li><span>{escape(label)}</span><strong>{escape(str(value))}</strong></li>'
+        for label, value in rows) + '</ul>')
 
 
 def _line_rows(lines, currency):
@@ -124,7 +147,8 @@ def _edit(client, proposal, line):
         st.session_state[f"reason:{identity}"] = ""
         st.rerun()
     qty = st.text_input("Новое количество", value=draft["qty"], key=f"qty:{identity}")
-    reason = st.text_area("Причина изменения (обязательно)", value=draft["reason"], key=f"reason:{identity}")
+    reason = st.text_area("Причина изменения (обязательно)", value=draft["reason"], key=f"reason:{identity}",
+                          placeholder="Например: уточнена потребность по проекту", height=100)
     draft.update(qty=qty, reason=reason)
     submitted = st.button("Сохранить количество", key=f"save:{identity}", disabled=stale or uncertain)
     if submitted:
@@ -164,6 +188,7 @@ def _prepare_download(client, reviewed):
 
 def _approval_and_export(client, proposal, reviewed):
     st.divider()
+    st.caption("Демонстрационная учётная запись")
     caps = proposal.get("capabilities") or {}
     dirty = any(_draft_dirty(draft) for identity, draft in st.session_state.get("order_drafts", {}).items()
                 if identity.startswith(proposal["proposal_id"] + ":"))
@@ -177,20 +202,21 @@ def _approval_and_export(client, proposal, reviewed):
         download = None
     if download:
         st.download_button("Скачать CSV", data=download["data"], file_name=download["filename"],
-                           mime="text/csv; charset=utf-8", type="primary", key=f"download:{proposal['proposal_id']}")
+                           mime="text/csv; charset=utf-8", type="primary", key=f"download:{proposal['proposal_id']}",
+                           use_container_width=True, icon=":material/download:")
         st.caption(f"Утверждённая версия {proposal['version']}. Файл подготовлен сервером.")
     elif proposal.get("status") == "approved":
         if st.button("Подготовить CSV", type="primary", disabled=not caps.get("can_export", False),
-                     key=f"export:{proposal['proposal_id']}"):
+                     key=f"export:{proposal['proposal_id']}", use_container_width=True, icon=":material/file_download:"):
             try:
                 _prepare_download(client, reviewed)
                 st.rerun()
             except ApiError as error:
                 show_api_error(error)
     else:
-        st.caption(f"Проверьте товары выше. Будет утверждена версия {proposal['version']}; поставщику ничего не отправляется.")
+        st.caption(f"Будет утверждена версия {proposal['version']}; поставщику ничего не отправляется.")
         if st.button("Утвердить и подготовить CSV", type="primary", disabled=not caps.get("can_approve", False),
-                     key=f"approve:{proposal['proposal_id']}"):
+                     key=f"approve:{proposal['proposal_id']}", use_container_width=True, icon=":material/check:"):
             try:
                 with st.spinner("Утверждаем проверенную версию…"):
                     approve_reviewed(client, reviewed)
@@ -213,7 +239,9 @@ def _approval_and_export(client, proposal, reviewed):
 
 
 def render_orders(client):
-    st.caption("Выберите поставщика, проверьте товары и скачайте утверждённый заказ.")
+    if st.session_state.pop("_reset_order_filters", False):
+        st.session_state["order_search"] = ""
+        st.session_state["urgency_filter"] = "Все"
     flash = st.session_state.pop("order_flash", None)
     if flash:
         getattr(st, flash[0])(flash[1])
@@ -222,11 +250,13 @@ def render_orders(client):
         show_api_error(error)
     run_id = st.session_state.get("run_id")
     if not run_id:
-        st.subheader("Подготовьте первый заказ")
-        st.write("Сначала выберите данные и запустите расчёт. Здесь появятся товары по поставщикам.")
-        if st.button("Перейти к данным", type="primary"):
-            st.session_state["pending_page"] = "Данные"
-            st.rerun()
+        with st.container(key="empty_order"):
+            section_heading(1, "Подготовьте первый заказ", "Начните с данных о продажах и запасах.")
+            st.write("Выберите подключённый источник в разделе «Данные» и запустите расчёт. "
+                     "Здесь появится список товаров по поставщикам с количеством и объяснением.")
+            if st.button("Перейти к данным", type="primary", icon=":material/arrow_forward:"):
+                st.session_state["pending_page"] = "Данные"
+                st.rerun()
         return
     try:
         run = client.get_planning_run(run_id)
@@ -279,34 +309,51 @@ def render_orders(client):
             return
         review_key = f"reviewed:{proposal_id}"
         reviewed = st.session_state.get(review_key, proposal)
-        _context(proposal)
-        _notices(proposal)
-        search, filters = st.columns([3, 2])
-        query = search.text_input("Найти товар", placeholder="Название или артикул", key="order_search").strip().casefold()
-        urgency = filters.selectbox("Срочность", tuple(URGENCY), format_func=URGENCY.get, key="urgency_filter")
-        lines = [line for line in proposal.get("lines", [])
-                 if (urgency == "Все" or line.get("urgency") == urgency)
-                 and (not query or query in (line["name"] + " " + line["sku_id"]).casefold())]
-        lines.sort(key=lambda item: (item["sku_id"], item["line_id"]))
-        if lines:
-            st.dataframe(_line_rows(lines, proposal.get("currency")), hide_index=True, width="stretch")
-            with st.expander("Проверить или изменить товар"):
-                by_line = {line["line_id"]: line for line in lines}
-                key = f"line_picker:{proposal_id}"
-                if st.session_state.get(key) not in by_line:
-                    st.session_state[key] = lines[0]["line_id"]
-                line_id = st.selectbox("Товар", list(by_line), key=key,
-                                      format_func=lambda value: f"{by_line[value]['name']} ({by_line[value]['sku_id']})")
-                _ledger(by_line[line_id])
-                _edit(client, proposal, by_line[line_id])
-        else:
-            st.info("Товары не найдены. Измените название или фильтр срочности.")
-        if len(lines) != len(proposal.get("lines", [])):
-            st.caption("Фильтр меняет только отображение. Утверждается весь заказ.")
-        _approval_and_export(client, proposal, reviewed)
-        with st.expander("Технические сведения о заказе"):
-            st.json({key: proposal.get(key) for key in
-                     ("proposal_id", "run_id", "snapshot_id", "version", "content_hash", "mode", "as_of", "capabilities")})
+        with st.container(key="order_columns"):
+            working, summary = st.columns([2.35, 1], gap="medium")
+            with working, st.container(key="order_workspace"):
+                section_heading(2, "Товары к закупке", "Начните с позиций с риском дефицита.")
+                _context(proposal)
+                _notices(proposal)
+                search, filters = st.columns([3, 2])
+                query = search.text_input("Найти товар", placeholder="Название или артикул", key="order_search").strip().casefold()
+                urgency = filters.selectbox("Срочность", tuple(URGENCY), format_func=URGENCY.get, key="urgency_filter")
+                lines = [line for line in proposal.get("lines", [])
+                         if (urgency == "Все" or line.get("urgency") == urgency)
+                         and (not query or query in (line["name"] + " " + line["sku_id"]).casefold())]
+                lines.sort(key=lambda item: (item["sku_id"], item["line_id"]))
+                if lines:
+                    st.dataframe(_line_rows(lines, proposal.get("currency")), hide_index=True, width="stretch",
+                                 height=min(480, len(lines) * 38 + 40), row_height=38)
+                    st.caption(f"Показано {len(lines)} из {len(proposal.get('lines', []))} позиций. "
+                               "Для объяснения и правки выберите товар ниже.")
+                    if len(lines) != len(proposal.get("lines", [])):
+                        st.caption("Фильтр меняет только отображение. Утверждается весь заказ.")
+                    st.divider()
+                    st.subheader("Проверить или изменить товар")
+                    by_line = {line["line_id"]: line for line in lines}
+                    key = f"line_picker:{proposal_id}"
+                    if st.session_state.get(key) not in by_line:
+                        st.session_state[key] = lines[0]["line_id"]
+                    line_id = st.selectbox("Товар", list(by_line), key=key,
+                                          format_func=lambda value: f"{by_line[value]['name']} ({by_line[value]['sku_id']})")
+                    _ledger(by_line[line_id])
+                    with st.expander("Изменить количество"):
+                        _edit(client, proposal, by_line[line_id])
+                else:
+                    st.info("Товары не найдены. Измените название или фильтр срочности.")
+                    st.caption("Фильтр меняет только отображение. Утверждается весь заказ.")
+                    if st.button("Сбросить поиск и фильтр", key="orders_reset_filters"):
+                        st.session_state["_reset_order_filters"] = True
+                        st.rerun()
+            with summary, st.container(key="order_summary"):
+                _summary(proposal)
+                _approval_and_export(client, proposal, reviewed)
+                _summary_details(proposal)
+                st.caption("CSV содержит весь заказ выбранному поставщику. Отправки поставщику нет.")
+                with st.expander("Технические сведения о заказе"):
+                    st.json({key: proposal.get(key) for key in
+                             ("proposal_id", "run_id", "snapshot_id", "version", "content_hash", "mode", "as_of", "capabilities")})
         st.session_state[review_key] = {key: proposal[key] for key in
                                       ("proposal_id", "version", "content_hash", "run_id", "snapshot_id")}
     except ApiError as error:

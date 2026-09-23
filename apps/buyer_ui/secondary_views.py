@@ -13,6 +13,7 @@ import streamlit as st
 
 from .client import ApiError
 from .formatting import format_date, format_decimal, format_money, show_api_error, show_issues, show_quality
+from .presentation import section_heading
 
 
 def _fingerprint(payload: dict[str, Any]) -> str:
@@ -144,7 +145,7 @@ def _show_scenario_comparison(
     if isinstance(summary, dict):
         rows = []
         for title, base_key, scenario_key in (
-            ("Целевой cycle service", "base_service_target", "scenario_service_target"),
+            ("Цель: цикл без дефицита", "base_service_target", "scenario_service_target"),
             ("Задержка поставщика, дней", "base_lead_time_delay_days", "scenario_lead_time_delay_days"),
         ):
             if base_key in summary or scenario_key in summary:
@@ -166,7 +167,7 @@ def _show_scenario_comparison(
                 (line.get("sku_id"), proposal.get("supplier_id"), proposal.get("warehouse_id")): line
                 for proposal in proposals for line in proposal.get("lines", [])
             }
-            selected_id = st.selectbox("Строка сравнения", list(lines), format_func=lambda value: " · ".join(str(lines[value][key]) for key in ("sku_id", "name", "supplier_id", "warehouse_id") if lines[value].get(key)), key=f"secondary_scenario_line_{scenario.get('id', 'result')}")
+            selected_id = st.selectbox("Выберите товар для сравнения", list(lines), format_func=lambda value: " · ".join(str(lines[value][key]) for key in ("sku_id", "name", "supplier_id", "warehouse_id") if lines[value].get(key)), key=f"secondary_scenario_line_{scenario.get('id', 'result')}")
             line = lines[selected_id]
             detail = metadata.get((line.get("sku_id"), line.get("supplier_id"), line.get("warehouse_id")), {})
             rows = []
@@ -191,8 +192,11 @@ def _show_scenario_comparison(
 
 
 def render_scenarios(client: Any) -> None:
-    st.subheader("Что изменится в заказе?")
-    st.caption("Сравните варианты на тех же данных. Текущий заказ останется без изменений.")
+    with st.container(key="scenario_workspace"):
+        _render_scenario_workspace(client)
+
+
+def _render_scenario_workspace(client: Any) -> None:
     snapshot_id = st.session_state.get("snapshot_id")
     run_id = st.session_state.get("run_id")
     context = (st.session_state.get("client_mode"), snapshot_id, run_id, st.session_state.get("proposal_id"))
@@ -200,7 +204,11 @@ def render_scenarios(client: Any) -> None:
         _clear_scenario()
         st.session_state["_secondary_scenario_context"] = context
     if not snapshot_id or not run_id:
-        st.info("Выберите snapshot и завершите базовый расчёт в разделе «Данные».")
+        section_heading(1, "Сначала рассчитайте заказ", "Для сравнения нужен готовый заказ на выбранных данных.")
+        st.info("Откройте раздел «Данные», подготовьте данные и нажмите «Рассчитать заказ». Затем вернитесь сюда, чтобы проверить новые условия.")
+        if st.button("Перейти к данным", key="secondary_scenario_to_data", type="primary"):
+            st.session_state["pending_page"] = "Данные"
+            st.rerun()
         return
     try:
         base_run = client.get_planning_run(run_id)
@@ -236,6 +244,7 @@ def render_scenarios(client: Any) -> None:
     if saved and saved.get("request", {}).get("seed") != seed:
         st.session_state.pop("_secondary_scenario", None)
         st.info("Seed базового расчёта изменился. Прежнее сравнение скрыто.")
+    section_heading(1, "Задайте новые условия", "Проверьте влияние задержки поставки и новых требований к наличию товаров. Сравнение не изменит текущий заказ.")
     with st.expander("Параметры исходного расчёта"):
         st.json({"snapshot_id": snapshot_id, "run_id": run_id, "seed": seed,
                  "model_version": base_run.get("model_version")})
@@ -263,7 +272,7 @@ def render_scenarios(client: Any) -> None:
             show_issues(proposal.get("warnings", []))
             for reason in proposal.get("capabilities", {}).get("reasons", []):
                 st.caption(str(reason))
-    with st.form("secondary_scenario_form"):
+    with st.form("secondary_scenario_form", border=False):
         protection, delivery = st.columns(2)
         target = protection.selectbox("Цель: цикл без дефицита", [0.95, 0.99], index=1,
                                       format_func=lambda v: f"{v:.0%}", key="secondary_target",
@@ -301,6 +310,7 @@ def render_scenarios(client: Any) -> None:
             return
     selected = st.session_state.get("_secondary_scenario")
     if not selected:
+        st.caption("После расчёта здесь появятся два варианта: исходный заказ и заказ с новыми условиями.")
         return
     try:
         scenario = client.get_scenario(selected["id"])
@@ -315,13 +325,14 @@ def render_scenarios(client: Any) -> None:
         _clear_scenario()
         st.error("Сервер не подтвердил ожидаемую базу, snapshot или seed сценария; сравнение скрыто.")
         return
-    _show_job(scenario, "Сценарий")
+    section_heading(2, "Сравните результат", "Посмотрите, как изменились количество товаров и стоимость закупки.")
+    _show_job(scenario, "Сравнение вариантов")
     if scenario.get("status") != "succeeded":
         st.button("Обновить результат", key="secondary_scenario_refresh")
         return
     with st.expander("Обновить результат сравнения"):
         st.button("Обновить результат", key="secondary_scenario_refresh")
-    st.write("**База / Сценарий**")
+    st.write("**Исходный расчёт и новые условия**")
     st.caption("База — исходный результат завершённого расчёта. Ручные правки предложений не входят в базу сценария.")
     with st.expander("Параметры сравнения"):
         st.json({"base_policy": policy, "scenario_overrides": selected["request"]["overrides"]})
@@ -368,7 +379,7 @@ def _render_snapshot_job(client: Any) -> None:
 
 
 def _render_sources_and_import(client: Any) -> None:
-    st.caption("Выберите источники, уже подключённые к серверу. Загрузка файлов здесь не предусмотрена.")
+    st.caption("Выберите подключённые источники и нажмите «Подготовить данные». После проверки используйте готовый набор для расчёта.")
     try:
         response = client.list_sources()
     except ApiError as error:
@@ -383,7 +394,7 @@ def _render_sources_and_import(client: Any) -> None:
     with st.expander("Метаданные источников из API"):
         st.json(response)
     source_ids = [s["source_id"] for s in sources if isinstance(s.get("source_id"), str)]
-    with st.form("secondary_create_snapshot"):
+    with st.form("secondary_create_snapshot", border=False):
         chosen = st.multiselect("Источники данных", source_ids, key="secondary_sources")
         with st.expander("Параметры импорта"):
             mapping = st.text_input("Версия mapping", value=st.session_state.get("mapping_version", "1.0"), key="secondary_mapping")
@@ -428,12 +439,12 @@ def _render_sources_and_import(client: Any) -> None:
 
 
 def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
-    st.write("**Рассчитать заказ**")
+    section_heading(2, "Рассчитайте заказ", "Получите рекомендации по товарам, сгруппированные по поставщикам. Затем проверьте и утвердите их в разделе «Заказы».")
     quality = snapshot.get("quality", {})
     can_plan = quality.get("capabilities", {}).get("can_plan", False)
     if not can_plan:
         st.warning("Расчёт недоступен. Откройте качество данных и исправьте указанные ограничения.")
-    with st.form("secondary_planning_form"):
+    with st.form("secondary_planning_form", border=False):
         with st.expander("Изменить параметры расчёта"):
             target = st.selectbox("Цель: цикл без дефицита", [0.95, 0.99], format_func=lambda v: f"{v:.0%}", key="secondary_base_target",
                                   help="Цель расчёта, а не гарантия отсутствия дефицита.")
@@ -563,8 +574,14 @@ def _render_projects(client: Any) -> None:
 
 
 def render_data(client: Any) -> None:
-    st.subheader("Данные для заказа")
+    with st.container(key="data_workspace"):
+        _render_data_workspace(client)
+
+
+def _render_data_workspace(client: Any) -> None:
+    section_heading(1, "Подготовьте данные", "Для расчёта нужны история продаж, остатки и поставки. Выберите готовый набор или подготовьте его из подключённых источников.")
     snapshot_id = st.session_state.get("snapshot_id")
+    snapshot = None
     if snapshot_id:
         try:
             snapshot = client.get_snapshot(snapshot_id)
@@ -575,15 +592,14 @@ def render_data(client: Any) -> None:
                 show_quality(quality)
                 with st.expander("Технические сведения"):
                     st.json(snapshot)
-            _render_planning(client, snapshot)
         except ApiError as error:
             show_api_error(error)
     else:
-        st.write("Выберите подключённые источники, подготовьте данные и запустите первый расчёт.")
+        st.info("Начните с выбора источников ниже. Когда данные будут готовы, появится кнопка «Использовать эти данные».")
     with st.expander("Обновить исходные данные", expanded=not snapshot_id):
         _render_sources_and_import(client)
         with st.expander("Выбрать готовые данные по ID"):
-            with st.form("secondary_select_snapshot"):
+            with st.form("secondary_select_snapshot", border=False):
                 selected_id = st.text_input("ID набора данных", value=snapshot_id or "", key="secondary_snapshot_input")
                 select = st.form_submit_button("Выбрать данные")
             if select:
@@ -591,13 +607,16 @@ def render_data(client: Any) -> None:
                     st.error("Укажите ID набора данных.")
                 else:
                     try:
-                        snapshot = client.get_snapshot(selected_id.strip())
-                        if snapshot.get("snapshot_id") != selected_id.strip():
+                        selected_snapshot = client.get_snapshot(selected_id.strip())
+                        if selected_snapshot.get("snapshot_id") != selected_id.strip():
                             st.error("API вернул snapshot с другим ID; выбор не изменён.")
                         else:
                             _select_snapshot(selected_id.strip())
                             st.rerun()
                     except ApiError as error:
                         show_api_error(error)
+    if snapshot:
+        _render_planning(client, snapshot)
     with st.expander("Проектные и регулярные продажи"):
+        st.caption("Дополнительная проверка: посмотрите, какие разовые продажи отделены от регулярного спроса.")
         _render_projects(client)

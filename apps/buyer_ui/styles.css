@@ -1,80 +1,130 @@
-/* Native Streamlit widgets keep their keyboard behavior and selected theme.
-   Warm neutrals, flat surfaces, and immediate feedback suit a daily work tool. */
+/* Electrokomplekt procurement workbench. Native controls retain keyboard semantics. */
 .stApp {
-  /* Streamlit sets color-scheme on this element; light-dark follows its menu. */
-  --buyer-ink: light-dark(#242321, #faf8f4);
-  --buyer-canvas: light-dark(#fbfaf7, #131416);
-  --buyer-line: light-dark(#dedbd5, #363735);
-  --buyer-soft: light-dark(#f1efea, #242524);
-  --buyer-muted: light-dark(#625f5a, #b8b4ad);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --buyer-ink: light-dark(#172c40, #e7eef5);
+  --buyer-canvas: light-dark(#f3f6f9, #101c27);
+  --buyer-surface: light-dark(#ffffff, #192a38);
+  --buyer-line: light-dark(#dce5ed, #344956);
+  --buyer-soft: light-dark(#eaf3f3, #243e43);
+  --buyer-muted: light-dark(#526779, #b4c5d1);
+  --buyer-accent: light-dark(#087f79, #78d4c5);
+  --buyer-on-accent: light-dark(#ffffff, #092c2b);
+  --buyer-focus: light-dark(#2563b1, #83baff);
+  --buyer-warning: light-dark(#8d5316, #ffd095);
+  --buyer-warning-bg: light-dark(#fff4e3, #49351d);
+  --buyer-radius: 14px;
+  color: var(--buyer-ink);
   background: var(--buyer-canvas);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-
-.stMainBlockContainer {max-width: 1120px; padding-top: 4rem; padding-bottom: 3rem;}
 .stMain {background: var(--buyer-canvas);}
-.stMain h1 {font-size: 2rem; font-weight: 650; letter-spacing: -0.025em; line-height: 1.2;}
-.stMain h3 {font-size: 1.25rem; font-weight: 600; line-height: 1.35;}
-[data-testid="stMetricValue"] {font-size: 1.65rem; font-variant-numeric: tabular-nums;}
+.stMainBlockContainer {max-width: 1280px; padding: 2rem 2rem 2.5rem;}
+[data-testid="stHeader"] {background: transparent;}
+[data-testid="stAppDeployButton"] {display: none;}
+.stMain h1 {color: var(--buyer-ink); font-size: 2.1rem; font-weight: 650; line-height: 1.15; letter-spacing: -0.03em; padding: 0; margin: 0;}
+.stMain h2 {font-size: 1.25rem; font-weight: 650; letter-spacing: -0.015em; line-height: 1.35; padding: 0;}
+.stMain h3 {font-size: 1.125rem; font-weight: 650; line-height: 1.4; padding-bottom: 0.35rem;}
+.stMain p {line-height: 1.5;}
 [data-testid="stCaptionContainer"] {color: var(--buyer-muted); opacity: 1;}
-[data-testid="stForm"] {border: 0; padding: 0;}
+.stMain a {text-underline-offset: 0.2em;}
+.st-key-buyer_header {padding-bottom: 0.25rem;}
+.buyer-brand {display: flex; gap: 0.75rem; align-items: center;}
+.buyer-brand-mark {display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px; color: var(--buyer-on-accent); background: var(--buyer-accent); font-size: 1rem; font-weight: 700; letter-spacing: -0.03em;}
+.buyer-brand strong {display: block; color: var(--buyer-ink); font-size: 1.125rem; font-weight: 650; letter-spacing: -0.02em;}
+.buyer-brand span {display: block; margin-top: 0.1rem; color: var(--buyer-muted); font-size: 0.8rem;}
+.buyer-brand > .buyer-brand-mark {display: grid; margin: 0; color: var(--buyer-on-accent); font-size: 1rem;}
+.st-key-buyer_header button {background: transparent;}
 
-/* A single-choice navigation strip. Keep the native radio inputs available to
-   assistive technology; only their decorative circles are hidden. */
-.st-key-workspace_navigation [role="radiogroup"] {width: 100%; gap: 0; border-bottom: 1px solid var(--buyer-line);}
+/* Keep the real radio inputs and focus behavior, with a compact tab appearance. */
+.st-key-workspace_navigation {padding: 0.1rem 0; border-bottom: 1px solid var(--buyer-line);}
+.st-key-workspace_navigation [role="radiogroup"] {gap: 0.5rem; width: 100%;}
 .st-key-workspace_navigation [data-testid="stRadioOption"] {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-  margin: 0;
-  border-bottom: 2px solid transparent;
+  margin: 0; min-height: 44px; padding: 0.6rem 1.25rem;
+  border-bottom: 2px solid transparent; color: var(--buyer-muted);
+  transition: background 160ms ease, color 160ms ease;
 }
 .st-key-workspace_navigation [data-testid="stRadioOption"] > div > div:first-child {display: none;}
 .st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:checked) {
-  border-bottom-color: var(--buyer-ink);
-  background: var(--buyer-soft);
+  color: var(--buyer-accent); border-bottom-color: var(--buyer-accent);
 }
-.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:checked) p {font-weight: 600;}
-.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:focus-visible) {
-  outline: 2px solid var(--buyer-ink);
-  outline-offset: -4px;
-}
+.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:checked) p {font-weight: 650; color: var(--buyer-accent);}
+.st-key-workspace_navigation [data-testid="stRadioOption"]:has(input:focus-visible) {outline: 2px solid var(--buyer-focus); outline-offset: -3px;}
 
-/* Details are subordinate to the table and next action, not another stack of cards. */
-[data-testid="stExpander"] > details {
-  border: 0;
-  border-bottom: 1px solid var(--buyer-line);
-  border-radius: 0;
+.buyer-intro {padding: 0.65rem 0 0.5rem;}
+.buyer-intro-copy p {color: var(--buyer-muted); margin: 0.6rem 0 1.1rem; max-width: 65ch;}
+.buyer-route {display: flex; align-items: center; flex-wrap: wrap; list-style: none; gap: 0.85rem 1.35rem; margin: 0; padding: 0;}
+.stApp .buyer-route, .stApp .buyer-summary-list {margin: 0; padding: 0;}
+.buyer-route li {display: flex; gap: 0.5rem; align-items: center; color: var(--buyer-muted); font-size: 0.875rem;}
+.buyer-route li:not(:last-child)::after {content: ""; height: 1px; width: 2.25rem; margin-left: 0.85rem; background: var(--buyer-line);}
+.buyer-step-number {display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--buyer-line); border-radius: 50%; font-size: 0.8rem; font-variant-numeric: tabular-nums;}
+.buyer-route .current {color: var(--buyer-accent); font-weight: 600;}
+.buyer-route .current .buyer-step-number {background: var(--buyer-accent); color: var(--buyer-on-accent); border-color: var(--buyer-accent);}
+
+/* Single functional surfaces: a working document and its approval summary. */
+.st-key-order_workspace, .st-key-order_summary, .st-key-scenario_workspace, .st-key-data_workspace, .st-key-empty_order {
+  background: var(--buyer-surface); border: 1px solid var(--buyer-line);
+  border-radius: var(--buyer-radius); padding: 1.4rem;
 }
-[data-testid="stExpander"] summary {min-height: 2.75rem;}
-.stMain button[kind], .stMain [data-testid="stDownloadButton"] a {
-  min-height: 2.75rem;
-  border-radius: 6px;
-  box-shadow: none;
-}
-.stMain button[kind^="primary"], .stMain [data-testid="stDownloadButton"] a[kind^="primary"] {
-  color: var(--buyer-canvas);
-  background: var(--buyer-ink);
-  border-color: var(--buyer-ink);
-}
+.st-key-order_summary {border-top: 3px solid var(--buyer-accent);}
+.buyer-section-heading {display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.2rem 0 0.5rem;}
+.buyer-section-number {display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; color: var(--buyer-accent); background: var(--buyer-soft); border-radius: 8px; font-size: 0.875rem; font-weight: 600;}
+.buyer-section-heading h2 {margin: 0; color: var(--buyer-ink);}
+.buyer-section-heading p {margin: 0.25rem 0 0; color: var(--buyer-muted); font-size: 0.875rem;}
+.buyer-status {display: inline-flex; width: fit-content; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;}
+.buyer-status::before {content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor;}
+.buyer-status.approved {color: var(--buyer-accent); background: var(--buyer-soft);}
+.buyer-status.draft {color: var(--buyer-warning); background: var(--buyer-warning-bg);}
+.buyer-meta {display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; color: var(--buyer-muted); font-size: 0.8rem;}
+.buyer-summary-list {padding: 0; margin: 0.3rem 0; list-style: none;}
+.buyer-summary-list li {display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--buyer-line); color: var(--buyer-muted); font-size: 0.875rem;}
+.buyer-summary-list strong {color: var(--buyer-ink); font-weight: 600; text-align: right; overflow-wrap: anywhere;}
+.buyer-next {margin: 0; color: var(--buyer-ink); font-weight: 600;}
+.buyer-next-detail {color: var(--buyer-muted); font-size: 0.875rem; margin: 0.25rem 0 0.75rem;}
+[data-testid="stMetricValue"] {color: var(--buyer-ink); font-size: 1.8rem; font-weight: 650; letter-spacing: -0.025em; font-variant-numeric: tabular-nums;}
+[data-testid="stMetricLabel"] {color: var(--buyer-muted);}
+[data-testid="stForm"] {border: 0; padding: 0;}
+[data-testid="stDataFrame"] {border-radius: 8px; overflow: hidden;}
+[data-testid="stExpander"] > details {border: 1px solid var(--buyer-line); border-radius: 10px; background: transparent;}
+[data-testid="stExpander"] summary {min-height: 44px;}
+.stMain hr {border-color: var(--buyer-line); margin: 1rem 0;}
+.stMain button[kind], .stMain [data-testid="stDownloadButton"] a {min-height: 44px; border-radius: 9px; box-shadow: none; font-weight: 600; transition: background 160ms ease, border-color 160ms ease;}
+.stMain button[kind^="secondary"] {border-color: var(--buyer-line); background: var(--buyer-surface); color: var(--buyer-ink);}
+.stMain button[kind^="primary"], .stMain [data-testid="stDownloadButton"] a[kind^="primary"] {background: var(--buyer-accent); border-color: var(--buyer-accent); color: var(--buyer-on-accent);}
 .stMain button[kind^="primary"] p {color: inherit;}
-.stMain button[kind]:disabled {opacity: 0.5; cursor: not-allowed;}
-.stMain button[kind]:focus-visible, .stMain summary:focus-visible {
-  outline: 2px solid var(--buyer-ink);
-  outline-offset: 3px;
-}
-.stMain input, .stMain textarea {font-size: 1rem; caret-color: var(--buyer-ink);}
-.stMain ::selection {background: var(--buyer-ink); color: var(--buyer-canvas);}
-
+.stMain button[kind]:disabled {opacity: 0.48; cursor: not-allowed;}
+.stMain button[kind]:focus-visible, .stMain summary:focus-visible {outline: 2px solid var(--buyer-focus); outline-offset: 3px;}
+.stMain input, .stMain textarea {font-size: 1rem; caret-color: var(--buyer-accent);}
+.stMain [data-baseweb="input"], .stMain [data-baseweb="textarea"], .stMain [data-baseweb="select"] > div {border-color: var(--buyer-line); border-radius: 8px; background: var(--buyer-surface);}
+.stMain [data-baseweb="input"]:focus-within, .stMain [data-baseweb="textarea"]:focus-within, .stMain [data-baseweb="select"]:focus-within > div {border-color: var(--buyer-accent);}
+.stMain ::selection {background: var(--buyer-accent); color: var(--buyer-on-accent);}
+.buyer-footer {display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-top: 1.75rem; margin-top: 1rem; border-top: 1px solid var(--buyer-line); color: var(--buyer-muted); font-size: 0.75rem;}
 @media (hover: hover) and (pointer: fine) {
   .st-key-workspace_navigation [data-testid="stRadioOption"]:hover {background: var(--buyer-soft);}
-  .stMain button[kind]:not(:disabled):hover {border-color: var(--buyer-ink);}
+  .stMain button[kind]:not(:disabled):hover {border-color: var(--buyer-accent);}
+  .stMain button[kind^="primary"]:not(:disabled):hover {filter: brightness(0.94);}
 }
-/* Press feedback is instantaneous. No motion delays repeated procurement work. */
-.stMain button[kind]:not(:disabled):active {filter: brightness(0.85);}
+.stMain button[kind]:not(:disabled):active {transform: translateY(1px);}
 @media (prefers-reduced-motion: reduce) {
-  .st-key-workspace_navigation *, .stMain button[kind] {transition: none; animation: none;}
+  .stApp *, .stApp *::before, .stApp *::after {animation: none !important; transition: none !important; scroll-behavior: auto !important;}
+  .stMain button[kind]:not(:disabled):active {transform: none;}
+}
+@media (prefers-contrast: more) {.stApp {--buyer-line: light-dark(#71818d, #a4b4bf);}}
+@media (max-width: 900px) {
+  .stMainBlockContainer {padding-inline: 1.25rem;}
+  .st-key-order_columns > [data-testid="stHorizontalBlock"] {flex-direction: column;}
+  .st-key-order_columns > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {width: 100%; flex: 1 1 100%;}
 }
 @media (max-width: 640px) {
-  .stMainBlockContainer {padding-inline: 1rem;}
-  .st-key-workspace_navigation [data-testid="stRadioOption"] {padding-inline: 0.75rem;}
+  .stMainBlockContainer {padding: 1rem 0.875rem 2rem;}
+  .stMain h1 {font-size: 1.65rem;}
+  .st-key-buyer_header [data-testid="stHorizontalBlock"] {flex-wrap: wrap; gap: 0.6rem;}
+  .st-key-buyer_header [data-testid="stColumn"]:first-child {flex: 1 1 100%;}
+  .st-key-buyer_header [data-testid="stColumn"]:not(:first-child) {flex: 1 1 40%; min-width: 0;}
+  .buyer-intro {padding-top: 0.75rem;}
+  .buyer-intro-copy p {margin-bottom: 1.1rem;}
+  .buyer-route {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: stretch;}
+  .buyer-route li {flex-direction: column; align-items: flex-start; font-size: 0.75rem; gap: 0.4rem;}
+  .buyer-route li:not(:last-child)::after {display: none;}
+  .st-key-workspace_navigation [role="radiogroup"] {gap: 0;}
+  .st-key-workspace_navigation [data-testid="stRadioOption"] {padding-inline: 0.85rem;}
+  .st-key-order_workspace, .st-key-order_summary, .st-key-scenario_workspace, .st-key-data_workspace, .st-key-empty_order {padding: 1rem;}
 }

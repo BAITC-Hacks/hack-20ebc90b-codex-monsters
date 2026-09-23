@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 from apps.buyer_ui.client import ApiError, HttpClient, MockClient  # noqa: E402
 from apps.buyer_ui.formatting import show_api_error  # noqa: E402
+from apps.buyer_ui.presentation import brand, page_intro  # noqa: E402
 from apps.buyer_ui.secondary_views import render_data, render_scenarios  # noqa: E402
 from apps.buyer_ui.views import render_orders  # noqa: E402
 
@@ -47,14 +48,23 @@ def _remember_drafts():
 
 
 def main():
-    st.set_page_config(page_title="Закупки", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="Электрокомплект · Закупки", layout="wide", initial_sidebar_state="collapsed")
     if not st.get_option("client.disableDataExport"):
         st.set_option("client.disableDataExport", True)
         st.rerun()
     st.html("<style>" + Path(__file__).with_name("styles.css").read_text(encoding="utf-8") + "</style>")
     _remember_drafts()
-    title, settings = st.columns([4, 1], vertical_alignment="center")
-    title.title("Закупки")
+    with st.container(key="buyer_header"):
+        title, help_area, settings = st.columns([6, 2, 2], vertical_alignment="center")
+        with title:
+            brand()
+        with help_area.popover("Как работать", icon=":material/help_outline:", use_container_width=True):
+            st.markdown("### От рекомендации к заказу")
+            st.markdown("**1. Данные.** Выберите подключённый источник и рассчитайте заказ. Если заказ уже есть, начинайте с проверки.")
+            st.markdown("**2. Заказы.** Выберите поставщика, проверьте товары и объяснения. При необходимости измените количество с причиной.")
+            st.markdown("**3. CSV.** Утвердите проверенную версию и скачайте файл. После правки потребуется новое утверждение.")
+            st.caption("В «Что, если…» можно сравнить условия поставки. Сравнение не меняет ваш заказ.")
+            st.caption("Демонстрационная учётная запись. Отправки поставщикам нет.")
     with settings.popover("Настройки", use_container_width=True):
         st.write("**Подключение**")
         default_mode = os.getenv("BUYER_UI_MODE", "mock")
@@ -108,6 +118,12 @@ def main():
     with st.container(key="workspace_navigation"):
         page = st.radio("Раздел", ["Заказы", "Что, если…", "Данные"], horizontal=True,
                         key="workspace_page", label_visibility="collapsed")
+    titles = {
+        "Заказы": ("План закупки", "Проверьте рекомендации по товарам и подготовьте заказ для поставщика.", 1),
+        "Что, если…": ("Сравните варианты закупки", "Посмотрите, как задержка поставки и уровень запаса повлияют на заказ.", 1),
+        "Данные": ("Основа точного заказа", "Подготовьте данные, проверьте ограничения и запустите расчёт.", 0),
+    }
+    page_intro(*titles[page])
     # Render only the current task; background screens must not make requests or reset forms.
     if page == "Заказы":
         render_orders(client)
@@ -115,6 +131,8 @@ def main():
         render_scenarios(client)
     else:
         render_data(client)
+    st.html('<footer class="buyer-footer"><span>Электрокомплект · Помощник закупщика</span>'
+            '<span>Решение о закупке остаётся за вами</span></footer>')
 
 
 if __name__ == "__main__":

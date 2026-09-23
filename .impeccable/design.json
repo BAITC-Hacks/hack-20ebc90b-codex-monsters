@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T11:14:40Z",
+  "title": "Design System: Электрокомплект",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Глубокий синий текст",
+        "canonical": "light-dark(#172c40, #e7eef5)",
+        "tonalRamp": [
+          "oklch(15.00% 0.04583 248.60)",
+          "oklch(26.43% 0.04583 248.60)",
+          "oklch(37.86% 0.04583 248.60)",
+          "oklch(49.29% 0.04583 248.60)",
+          "oklch(60.71% 0.04583 248.60)",
+          "oklch(72.14% 0.04583 248.60)",
+          "oklch(83.57% 0.04583 248.60)",
+          "oklch(95.00% 0.04583 248.60)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Холодный холст",
+        "canonical": "light-dark(#f3f6f9, #101c27)",
+        "tonalRamp": [
+          "oklch(15.00% 0.00514 247.88)",
+          "oklch(26.43% 0.00514 247.88)",
+          "oklch(37.86% 0.00514 247.88)",
+          "oklch(49.29% 0.00514 247.88)",
+          "oklch(60.71% 0.00514 247.88)",
+          "oklch(72.14% 0.00514 247.88)",
+          "oklch(83.57% 0.00514 247.88)",
+          "oklch(95.00% 0.00514 247.88)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Чистая поверхность",
+        "canonical": "light-dark(#ffffff, #192a38)",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0)",
+          "oklch(26.43% 0.00000 0)",
+          "oklch(37.86% 0.00000 0)",
+          "oklch(49.29% 0.00000 0)",
+          "oklch(60.71% 0.00000 0)",
+          "oklch(72.14% 0.00000 0)",
+          "oklch(83.57% 0.00000 0)",
+          "oklch(95.00% 0.00000 0)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Тихая линия",
+        "canonical": "light-dark(#dce5ed, #344956)",
+        "tonalRamp": [
+          "oklch(15.00% 0.01459 244.73)",
+          "oklch(26.43% 0.01459 244.73)",
+          "oklch(37.86% 0.01459 244.73)",
+          "oklch(49.29% 0.01459 244.73)",
+          "oklch(60.71% 0.01459 244.73)",
+          "oklch(72.14% 0.01459 244.73)",
+          "oklch(83.57% 0.01459 244.73)",
+          "oklch(95.00% 0.01459 244.73)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Мягкая бирюза",
+        "canonical": "light-dark(#eaf3f3, #243e43)",
+        "tonalRamp": [
+          "oklch(15.00% 0.00956 197.00)",
+          "oklch(26.43% 0.00956 197.00)",
+          "oklch(37.86% 0.00956 197.00)",
+          "oklch(49.29% 0.00956 197.00)",
+          "oklch(60.71% 0.00956 197.00)",
+          "oklch(72.14% 0.00956 197.00)",
+          "oklch(83.57% 0.00956 197.00)",
+          "oklch(95.00% 0.00956 197.00)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Вторичный текст",
+        "canonical": "light-dark(#526779, #b4c5d1)",
+        "tonalRamp": [
+          "oklch(15.00% 0.03829 244.52)",
+          "oklch(26.43% 0.03829 244.52)",
+          "oklch(37.86% 0.03829 244.52)",
+          "oklch(49.29% 0.03829 244.52)",
+          "oklch(60.71% 0.03829 244.52)",
+          "oklch(72.14% 0.03829 244.52)",
+          "oklch(83.57% 0.03829 244.52)",
+          "oklch(95.00% 0.03829 244.52)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Рабочая бирюза",
+        "canonical": "light-dark(#087f79, #78d4c5)",
+        "tonalRamp": [
+          "oklch(15.00% 0.09179 188.94)",
+          "oklch(26.43% 0.09179 188.94)",
+          "oklch(37.86% 0.09179 188.94)",
+          "oklch(49.29% 0.09179 188.94)",
+          "oklch(60.71% 0.09179 188.94)",
+          "oklch(72.14% 0.09179 188.94)",
+          "oklch(83.57% 0.09179 188.94)",
+          "oklch(95.00% 0.09179 188.94)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "on-accent": {
+        "role": "neutral",
+        "displayName": "Свет на бирюзе",
+        "canonical": "light-dark(#ffffff, #092c2b)",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0)",
+          "oklch(26.43% 0.00000 0)",
+          "oklch(37.86% 0.00000 0)",
+          "oklch(49.29% 0.00000 0)",
+          "oklch(60.71% 0.00000 0)",
+          "oklch(72.14% 0.00000 0)",
+          "oklch(83.57% 0.00000 0)",
+          "oklch(95.00% 0.00000 0)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "focus": {
+        "role": "secondary",
+        "displayName": "Синий фокус",
+        "canonical": "light-dark(#2563b1, #83baff)",
+        "tonalRamp": [
+          "oklch(15.00% 0.13910 256.02)",
+          "oklch(26.43% 0.13910 256.02)",
+          "oklch(37.86% 0.13910 256.02)",
+          "oklch(49.29% 0.13910 256.02)",
+          "oklch(60.71% 0.13910 256.02)",
+          "oklch(72.14% 0.13910 256.02)",
+          "oklch(83.57% 0.13910 256.02)",
+          "oklch(95.00% 0.13910 256.02)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Янтарное ожидание",
+        "canonical": "light-dark(#8d5316, #ffd095)",
+        "tonalRamp": [
+          "oklch(15.00% 0.10510 61.40)",
+          "oklch(26.43% 0.10510 61.40)",
+          "oklch(37.86% 0.10510 61.40)",
+          "oklch(49.29% 0.10510 61.40)",
+          "oklch(60.71% 0.10510 61.40)",
+          "oklch(72.14% 0.10510 61.40)",
+          "oklch(83.57% 0.10510 61.40)",
+          "oklch(95.00% 0.10510 61.40)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      },
+      "warning-bg": {
+        "role": "neutral",
+        "displayName": "Янтарная подложка",
+        "canonical": "light-dark(#fff4e3, #49351d)",
+        "tonalRamp": [
+          "oklch(15.00% 0.02534 78.92)",
+          "oklch(26.43% 0.02534 78.92)",
+          "oklch(37.86% 0.02534 78.92)",
+          "oklch(49.29% 0.02534 78.92)",
+          "oklch(60.71% 0.02534 78.92)",
+          "oklch(72.14% 0.02534 78.92)",
+          "oklch(83.57% 0.02534 78.92)",
+          "oklch(95.00% 0.02534 78.92)"
+        ],
+        "rampNote": "Производная OKLCH-шкала светлого значения для панели документации; не дополнительная палитра приложения."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Заголовок страницы",
+        "purpose": "Основная задача раздела; 1.65rem до 640px."
+      },
+      "title": {
+        "displayName": "Рабочая секция",
+        "purpose": "Пронумерованные шаги задачи."
+      },
+      "body": {
+        "displayName": "Пояснение",
+        "purpose": "Описание задачи и читаемые инструкции."
+      },
+      "label": {
+        "displayName": "Подпись",
+        "purpose": "Статусы и метаданные."
+      }
+    },
+    "shadows": [
+      {
+        "name": "button-flat",
+        "value": "none",
+        "purpose": "Пользовательские стили не добавляют тени кнопок и панелей; встроенные popover сохраняют оформление Streamlit."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "160ms ease",
+        "purpose": "Изменение фона, цвета и границы."
+      },
+      {
+        "name": "press-feedback",
+        "value": "translateY(1px)",
+        "purpose": "Обратная связь при нажатии доступной кнопки."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none; scroll-behavior: auto; transform: none",
+        "purpose": "При prefers-reduced-motion: reduce переходы и смещение нажатия выключены."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack-order-panels",
+        "value": "900px"
+      },
+      {
+        "name": "compact-screen",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Основное действие",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Текущее действие над проверенной версией заказа.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Утвердить и подготовить CSV</button>",
+      "css": ".ds-primary{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;min-height:44px;border:1px solid var(--buyer-accent, light-dark(#087f79, #78d4c5));border-radius:9px;background:var(--buyer-accent, light-dark(#087f79, #78d4c5));color:var(--buyer-on-accent, light-dark(#ffffff, #092c2b));font-weight:600;box-shadow:none;transition:background 160ms ease,border-color 160ms ease}.ds-primary:focus-visible{outline:2px solid var(--buyer-focus, light-dark(#2563b1, #83baff));outline-offset:3px}.ds-primary:disabled{opacity:.48;cursor:not-allowed}.ds-primary:not(:disabled):active{transform:translateY(1px)}@media(hover:hover) and (pointer:fine){.ds-primary:not(:disabled):hover{filter:brightness(.94)}}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-nav-label{transition:none}.ds-primary:active,.ds-secondary:active{transform:none}}"
+    },
+    {
+      "name": "Вторичное действие",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Повторное чтение, сброс или действие без акцентного приоритета.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Сбросить поиск и фильтр</button>",
+      "css": ".ds-secondary{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;min-height:44px;border:1px solid var(--buyer-line, light-dark(#dce5ed, #344956));border-radius:9px;background:var(--buyer-surface, light-dark(#ffffff, #192a38));color:var(--buyer-ink, light-dark(#172c40, #e7eef5));font-weight:600;box-shadow:none;transition:background 160ms ease,border-color 160ms ease}.ds-secondary:focus-visible{outline:2px solid var(--buyer-focus, light-dark(#2563b1, #83baff));outline-offset:3px}.ds-secondary:disabled{opacity:.48;cursor:not-allowed}.ds-secondary:not(:disabled):active{transform:translateY(1px)}@media(hover:hover) and (pointer:fine){.ds-secondary:not(:disabled):hover{border-color:var(--buyer-accent, light-dark(#087f79, #78d4c5))}}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-nav-label{transition:none}.ds-primary:active,.ds-secondary:active{transform:none}}"
+    },
+    {
+      "name": "Поле поиска",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Нативное поле с постоянной подписью; рамка реагирует на фокус.",
+      "html": "<label class=\"ds-field-label\">Найти товар<input class=\"ds-field\" type=\"search\" placeholder=\"Название или артикул\"></label>",
+      "css": ".ds-field-label{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:var(--buyer-ink, light-dark(#172c40, #e7eef5));display:grid;gap:.5rem}.ds-field{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;color:var(--buyer-ink, light-dark(#172c40, #e7eef5));background:var(--buyer-surface, light-dark(#ffffff, #192a38));border:1px solid var(--buyer-line, light-dark(#dce5ed, #344956));border-radius:8px;caret-color:var(--buyer-accent, light-dark(#087f79, #78d4c5))}.ds-field:focus{border-color:var(--buyer-accent, light-dark(#087f79, #78d4c5))}"
+    },
+    {
+      "name": "Разделы рабочего места",
+      "kind": "nav",
+      "description": "Radio-навигация с подчёркнутым выбором и видимым клавиатурным фокусом.",
+      "html": "<div class=\"ds-nav\" role=\"radiogroup\" aria-label=\"Раздел\"><label class=\"ds-nav-label\"><input type=\"radio\" name=\"ds-workspace\" checked>Заказы</label><label class=\"ds-nav-label\"><input type=\"radio\" name=\"ds-workspace\">Что, если…</label><label class=\"ds-nav-label\"><input type=\"radio\" name=\"ds-workspace\">Данные</label></div>",
+      "css": ".ds-nav{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:flex;gap:.5rem;border-bottom:1px solid var(--buyer-line, light-dark(#dce5ed, #344956))}.ds-nav-label{position:relative;min-height:44px;padding:.6rem 1.25rem;border-bottom:2px solid transparent;color:var(--buyer-muted, light-dark(#526779, #b4c5d1));transition:background 160ms ease,color 160ms ease}.ds-nav-label input{position:absolute;opacity:0}.ds-nav-label:has(input:checked){color:var(--buyer-accent, light-dark(#087f79, #78d4c5));border-bottom-color:var(--buyer-accent, light-dark(#087f79, #78d4c5));font-weight:650}.ds-nav-label:has(input:focus-visible){outline:2px solid var(--buyer-focus, light-dark(#2563b1, #83baff));outline-offset:-3px}@media(hover:hover) and (pointer:fine){.ds-nav-label:hover{background:var(--buyer-soft, light-dark(#eaf3f3, #243e43))}}@media(max-width:640px){.ds-nav{gap:0}.ds-nav-label{padding-inline:.85rem}}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-nav-label{transition:none}.ds-primary:active,.ds-secondary:active{transform:none}}"
+    },
+    {
+      "name": "Утверждённый статус",
+      "kind": "chip",
+      "refersTo": "status-approved",
+      "description": "Текст и точка передают серверное утверждение.",
+      "html": "<span class=\"ds-status-approved\">Утверждён</span>",
+      "css": ".ds-status-approved{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-flex;width:fit-content;align-items:center;gap:.4rem;padding:.3rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;color:var(--buyer-accent, light-dark(#087f79, #78d4c5));background:var(--buyer-soft, light-dark(#eaf3f3, #243e43))}.ds-status-approved:before{content:\"\";width:6px;height:6px;border-radius:50%;background:currentColor}"
+    },
+    {
+      "name": "Статус проверки",
+      "kind": "chip",
+      "refersTo": "status-draft",
+      "description": "Янтарная подпись напоминает о решении закупщика.",
+      "html": "<span class=\"ds-status-draft\">Ожидает вашей проверки</span>",
+      "css": ".ds-status-draft{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:inline-flex;width:fit-content;align-items:center;gap:.4rem;padding:.3rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;color:var(--buyer-warning, light-dark(#8d5316, #ffd095));background:var(--buyer-warning-bg, light-dark(#fff4e3, #49351d))}.ds-status-draft:before{content:\"\";width:6px;height:6px;border-radius:50%;background:currentColor}"
+    },
+    {
+      "name": "Рабочая панель",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Одна общая поверхность для связанных данных и действий.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-title\">Товары к закупке</h2><p class=\"ds-panel-detail\">Начните с позиций с риском дефицита.</p></section>",
+      "css": ".ds-panel{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;background:var(--buyer-surface, light-dark(#ffffff, #192a38));color:var(--buyer-ink, light-dark(#172c40, #e7eef5));border:1px solid var(--buyer-line, light-dark(#dce5ed, #344956));border-radius:14px;padding:1.4rem}.ds-panel-title{font-size:1.25rem;font-weight:650;letter-spacing:-.015em;line-height:1.35;margin:0}.ds-panel-detail{color:var(--buyer-muted, light-dark(#526779, #b4c5d1));font-size:.875rem;margin:.25rem 0 0}@media(max-width:640px){.ds-panel{padding:1rem}}"
+    },
+    {
+      "name": "Маршрут заказа",
+      "kind": "custom",
+      "description": "Порядок работы; статическая подсказка, не кликабельная навигация.",
+      "html": "<ol class=\"ds-route\" aria-label=\"Порядок работы с заказом\"><li><span class=\"ds-step\">1</span>Подготовить данные</li><li class=\"ds-current\"><span class=\"ds-step\">2</span>Проверить заказ</li><li><span class=\"ds-step\">3</span>Получить CSV</li></ol>",
+      "css": ".ds-route{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:flex;align-items:center;flex-wrap:wrap;list-style:none;gap:.85rem 1.35rem;margin:0;padding:0}.ds-route li{display:flex;gap:.5rem;align-items:center;color:var(--buyer-muted, light-dark(#526779, #b4c5d1));font-size:.875rem}.ds-route li:not(:last-child):after{content:\"\";height:1px;width:2.25rem;margin-left:.85rem;background:var(--buyer-line, light-dark(#dce5ed, #344956))}.ds-step{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--buyer-line, light-dark(#dce5ed, #344956));border-radius:50%;font-size:.8rem;font-variant-numeric:tabular-nums}.ds-route .ds-current{color:var(--buyer-accent, light-dark(#087f79, #78d4c5));font-weight:600}.ds-current .ds-step{background:var(--buyer-accent, light-dark(#087f79, #78d4c5));color:var(--buyer-on-accent, light-dark(#ffffff, #092c2b));border-color:var(--buyer-accent, light-dark(#087f79, #78d4c5))}@media(max-width:640px){.ds-route{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;align-items:stretch}.ds-route li{flex-direction:column;align-items:flex-start;font-size:.75rem;gap:.4rem}.ds-route li:not(:last-child):after{display:none}}"
+    },
+    {
+      "name": "Знак и название",
+      "kind": "custom",
+      "description": "Типографическая идентичность приложения.",
+      "html": "<div class=\"ds-brand\"><span class=\"ds-brand-mark\" aria-hidden=\"true\">EK</span><div><strong>Электрокомплект</strong><span>Планирование закупок</span></div></div>",
+      "css": ".ds-brand{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;display:flex;gap:.75rem;align-items:center}.ds-brand-mark{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;color:var(--buyer-on-accent, light-dark(#ffffff, #092c2b));background:var(--buyer-accent, light-dark(#087f79, #78d4c5));font-size:1rem;font-weight:700;letter-spacing:-.03em}.ds-brand strong{display:block;color:var(--buyer-ink, light-dark(#172c40, #e7eef5));font-size:1.125rem;font-weight:650;letter-spacing:-.02em}.ds-brand div span{display:block;margin-top:.1rem;color:var(--buyer-muted, light-dark(#526779, #b4c5d1));font-size:.8rem}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Рабочий стол закупщика",
+    "overview": "Это название описывает реализованный режим Operate: спокойную рабочую среду, в которой закупщик читает рекомендацию, проверяет товар и принимает решение. Холодный светлый фон, тёмный текст и ограниченный бирюзовый акцент поддерживают плотные данные без ощущения технической панели. Название направления — документирование принятой реализации, не результат отдельного исследования бренда.\n\nИндивидуальность создают типографический знак EK, название «Электрокомплект» и последовательность работы с заказом. Подход `apple-design` выражен в ясной иерархии, устойчивом расположении действий, нативном вводе и короткой обратной связи. Источники, границы и проверки записаны в [отчёте редизайна](docs/demo/ui-redesign.md); продуктовые инварианты — в [PRODUCT.md](PRODUCT.md).",
+    "keyCharacteristics": [
+      "Спокойная плотность рабочего интерфейса.",
+      "Одна функциональная поверхность на рабочую задачу.",
+      "Видимый следующий шаг и сохраняемый контекст заказа.",
+      "Читаемые данные, статусы с текстом и нативные элементы ввода."
+    ],
+    "rules": [
+      {
+        "name": "The Meaningful Accent Rule",
+        "body": "Бирюзовый акцент обозначает действие, выбор или статус; смысл статуса всегда дублируется текстом.",
+        "section": "colors"
+      },
+      {
+        "name": "The Functional Surface Rule",
+        "body": "Объединяйте содержимое одной задачи общей поверхностью; не дробите каждый показатель на отдельную декоративную карточку.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do сохранять видимый контекст версии, данных и поставщика рядом с рабочей задачей.",
+      "Do использовать текст вместе с цветом для состояния и ограничений.",
+      "Do сохранять нативный ввод, видимый фокус и уменьшенное движение.",
+      "Do проверять полный маршрут до утверждённого CSV после изменения расположения действий."
+    ],
+    "donts": [
+      "Don't превращать синтетические примеры или целевой уровень сервиса в обещание результата.",
+      "Don't скрывать блокирующую причину за техническими подробностями.",
+      "Don't связывать фильтр таблицы с составом утверждаемого заказа.",
+      "Don't подменять серверные значения декоративными KPI или формулами интерфейса."
+    ]
+  }
+}
