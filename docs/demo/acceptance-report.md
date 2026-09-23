@@ -1,6 +1,6 @@
 # Приёмка части C
 
-Проверенная реализация UI: `c0007e38253b102d8432bb02d4195aca44079292`. Backend A: `d619ac2d3fe9fa628f921fa4c95574f54c70aff3`. Изменения C объединены с новой main; работа продолжается в main по актуальному AGENTS.md. C меняет только свои UI/tests/demo каталоги.
+Проверенная реализация UI: `c0007e38253b102d8432bb02d4195aca44079292`. Последняя проверенная база A: `2c72a42706d3a6e399a367e9ea3da4054bd06ae1`; объединённый код `9bcbf7b7a4215e7aa7a182415422b4ab4125e8e3`. Работа продолжается в main по актуальному AGENTS.md. C меняет только свои UI/tests/demo каталоги.
 
 ## Выполненные проверки
 
@@ -11,7 +11,7 @@ Python **3.12.14**, Streamlit **1.64.0**, 23 сентября 2026 года:
 /tmp/codex-ui-mvp-venv/bin/python -m pytest -q
 ```
 
-Ruff: **All checks passed**. Общий прогон: **123 passed, 30 subtests passed, 12.28 s**, без пропусков. Вывод: [full-test-results.txt](full-test-results.txt). Одно предупреждение — deprecation httpx в FastAPI TestClient. До интеграции отдельно прошли 53 проверки C: [исходный протокол](ui-test-results.txt).
+Ruff: **All checks passed**, включая src/apps/tests/scripts после получения новой main. Общий прогон: **123 passed, 30 subtests passed, 12.05 s**, без пропусков. Вывод: [full-test-results.txt](full-test-results.txt). Одно предупреждение — deprecation httpx в FastAPI TestClient. До интеграции отдельно прошли 53 проверки C: [исходный протокол](ui-test-results.txt).
 
 | Проверка | Уровень | Статус | Доказательство |
 |---|---|---|---|
