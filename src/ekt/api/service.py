@@ -103,7 +103,7 @@ class Service:
                 reserved = tx.reserve_idempotency(kind, key, digest(payload), id)
                 if not reserved["created"]:
                     return reserved["result_id"], False
-            tx.create_item("jobs", id, {"id": id, "kind": kind, "status": "queued", "stage": "queued", "progress": 0.0, "created_at": now(), "updated_at": now(), "error": None, "result_ref": None, "request": payload, "proposal_ids": [], **({"base_run_id": payload["base_run_id"]} if kind == "scenario" else {})})
+            tx.create_item("jobs", id, {"id": id, "kind": kind, "status": "queued", "stage": "queued", "progress": 0.0, "created_at": now(), "updated_at": now(), "error": None, "result_ref": None, "request": payload, "proposal_ids": [], "snapshot_id": payload.get("snapshot_id"), "mode": payload.get("mode"), **({"base_run_id": payload["base_run_id"]} if kind == "scenario" else {})})
         return id, True
 
     def _guarded(self, id, action):
@@ -158,7 +158,7 @@ class Service:
                 tx.create_item("snapshots", snapshot.snapshot_id, data)
             elif any(existing[key] != data[key] for key in ("manifest_hash", "as_of", "mode", "mapping_version")):
                 raise ServiceError("SNAPSHOT_ID_COLLISION", "ID снимка уже соответствует другому содержимому", 409)
-        self._update_job(id, status="succeeded", stage="complete", progress=1.0, result_ref=snapshot.snapshot_id, snapshot_id=snapshot.snapshot_id, quality=data["quality"])
+        self._update_job(id, status="succeeded", stage="complete", progress=1.0, result_ref=snapshot.snapshot_id, snapshot_id=snapshot.snapshot_id, mode=snapshot.mode, quality=data["quality"])
 
     def start_run(self, request):
         self._require("snapshots", request["snapshot_id"])
@@ -198,6 +198,9 @@ class Service:
             data = proposal.model_dump(mode="json")
             data["version"] = 1
             data["capabilities"]["can_export"] = False
+            if data["mode"] == "real_preview":
+                data["capabilities"]["can_approve"] = False
+                data["capabilities"]["reasons"].append("Real orders require ERP freshness checks and verified buyer identity")
             data["content_hash"] = proposal_hash(data)
             values.append(data)
         # Completed forecast/proposals become visible together.
@@ -210,7 +213,7 @@ class Service:
             for data in values:
                 tx.create_item("proposals", data["proposal_id"], data)
             current = tx.get_item("jobs", id)
-            tx.mutate_item("jobs", id, current["version"], lambda value: {**value, "status": "succeeded", "stage": "complete", "progress": 1.0, "forecast_id": forecast.forecast_id, "proposal_ids": [data["proposal_id"] for data in values], "quality": snapshot.quality.model_dump(mode="json"), "model_version": forecast.model_version, "result_ref": id, "updated_at": now()})
+            tx.mutate_item("jobs", id, current["version"], lambda value: {**value, "status": "succeeded", "stage": "complete", "progress": 1.0, "forecast_id": forecast.forecast_id, "proposal_ids": [data["proposal_id"] for data in values], "quality": snapshot.quality.model_dump(mode="json"), "model_version": forecast.model_version, "mode": snapshot.mode, "as_of": snapshot.as_of.isoformat(), "seed": forecast.seed, "policy": policy.model_dump(mode="json"), "snapshot_manifest_hash": snapshot.manifest_hash, "forecast_hash": digest(forecast_data), "result_ref": id, "updated_at": now()})
 
     def list_proposals(self, run_id=None, supplier_id=None, limit=50, cursor=None):
         values = self.store.list_items("proposals")

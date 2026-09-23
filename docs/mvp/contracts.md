@@ -1,6 +1,6 @@
 # Контракты сильного MVP — версия 1
 
-Статус: спецификация для имплементации, продуктовый код ещё не создан. Владелец общих контрактов — исполнитель A. Срок команды: 225 минут, поэтому используем один Python-проект, FastAPI, Streamlit и один backend worker. Корпоративные контракты из architecture-blueprint.md остаются направлением развития; для этого релиза точный интерфейс задаёт этот документ.
+Статус: спецификация MVP 1.0; runtime-модели реализованы в `src/ekt/contracts`. Проверяемые HTTP-схемы доступны в `/docs` и `/openapi.json`; состояние интеграции — [status-a.md](status-a.md). Владелец общих контрактов — исполнитель A. Срок команды: 225 минут, поэтому используем один Python-проект, FastAPI, Streamlit и один backend worker. Корпоративные контракты из architecture-blueprint.md остаются направлением развития; для этого релиза точный интерфейс задаёт этот документ.
 
 ## 1. Общие правила
 
@@ -66,7 +66,7 @@ Canonical tables:
 | `planning_overrides` / scope+parameter+version | scope_id, parameter, value, valid_from, valid_to?, provenance, reason |
 | `monthly_sales`, `monthly_balances` | отдельные контрольные таблицы; period_start, period_end, sku_id, measure, value?, source_id, coverage; не добавляются к overlapping transactions |
 
-Поля без указанного типа повторно используют ID/Qty/Date/Timestamp из общих правил по смыслу. Перед freeze A материализует все поля в Pydantic/Arrow и фиксирует sample JSON; этот документ не подменяет runtime validation. Отсутствующие бизнес-определения отражаются в quality, а не скрываются обязательностью схемы.
+Поля без указанного типа повторно используют ID/Qty/Date/Timestamp из общих правил по смыслу. A материализует поля в Pydantic/Arrow и фиксирует sample JSON; этот документ не подменяет runtime validation. Отсутствующие бизнес-определения отражаются в quality, а не скрываются обязательностью схемы.
 
 ### QualityReport
 

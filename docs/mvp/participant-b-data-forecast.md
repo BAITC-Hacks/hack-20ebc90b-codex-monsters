@@ -1,8 +1,10 @@
 # Участник B — данные, восстановление спроса и прогноз
 
-**Дедлайн:** 06:00; старт 02:15; всего 225 минут. T+0 = 02:15. Работают три исполнителя: A — интеграция и заказ, B — данные и прогноз, C — интерфейс. Это план будущей имплементации; сейчас продуктовый код не создан.
+**Дедлайн:** 06:00; старт 02:15; всего 225 минут. T+0 = 02:15. Работают три исполнителя: A — интеграция и заказ, B — данные и прогноз, C — интерфейс. Это задание B; фактический статус своего модуля фиксирует исполнитель B. Общие контракты и backend A уже доступны.
 
 Точный интерфейс задаёт [contracts.md](./contracts.md), а [architecture-blueprint.md](../architecture-blueprint.md) описывает последующее развитие. План рассчитан на один склад, метаданные двух поставщиков, рабочий реальный subset и полный явно синтетический demo. Данные 1С в реальном времени, отправка поставщикам и корпоративная инфраструктура в этот релиз не входят.
+
+**Текущий workflow:** main-only, без новых веток/worktree/PR. Общие типы уже доступны в `ekt.contracts`; подключение backend описано в [status-a.md](status-a.md). API ожидает `ekt.data.build_snapshot` и `ekt.forecast.build_forecast`; даты прогноза — от `as_of + 1` до `as_of + 90`.
 
 ## 1. Что должен получить пользователь
 
@@ -31,7 +33,7 @@ B не реализует safety stock/ROP, конечный заказ, окр�
 
 Только A меняет `src/ekt/contracts/**`, `pyproject.toml`, lock-файл, общую fixture factory, bootstrap/CI/Compose. B запрашивает конкретное изменение у A; не заводит несовместимую копию модели. C получает данные только через API A, без business SQL и импортов B.
 
-Ветка B: `codex/data-forecast`, отдельный clone/worktree. У каждого человека отдельная физическая рабочая директория и отдельный локальный DuckDB. Общий репозиторий не означает общий открытый checkout.
+Рабочая ветка B — существующая `main`, обычный clone на машине участника. Новые ветки и worktree не создавать. Локальные аналитические файлы у каждого свои; в общей папке агентов соблюдать владение каталогами и последовательность Git-операций.
 
 ## 3. Источники: что нельзя перепутать
 
@@ -73,7 +75,7 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 - Качество: `ready|degraded|blocked`; capabilities показывают доступность планирования/утверждения. Заблокированный SKU не скрывает пригодный subset.
 - Canonical quantities — Decimal с UOM; float внутри модели конечный. `as_of` из request, не wall-clock NOW. Только завершённые файлы публикуются в manifest.
 
-## 5. Порядок исполнения и небольшие PR
+## 5. Порядок исполнения и небольшие commits в main
 
 ### B1 — T+0–35, 02:15–02:50: первый живой контракт
 
@@ -83,12 +85,12 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 1. Реализовать минимальное чтение portable synthetic snapshot, предоставленного A.
 2. Подготовить каркас `build_snapshot` с source checksum, version, quality report, неизменяемыми Parquet refs.
-3. Отдать `build_forecast` sample на 90 дней с простой recent mean и документированной uncertainty; после следующих PR sample заменяется окончательной логикой, interface не меняется.
+3. Отдать `build_forecast` sample на 90 дней с простой recent mean и документированной uncertainty; после следующих checkpoints sample заменяется окончательной логикой, interface не меняется.
 4. Добавить локальный source manifest по aliases; profiler проверяет headers/dates/UOM/signs, без вывода полных строк.
 
 **DoD:** A запускает функции на fixture через общий контракт, получает валидный артефакт. Тест: `00123` остаётся SKU string; replay одинакового источника не удваивает строки; неподходящий header даёт ошибку.
 
-**PR B1:** `data/forecast contract skeleton and synthetic vertical`. В PR нет реальных данных и изменений чужого ownership.
+**Checkpoint B1:** `data/forecast contract skeleton and synthetic vertical`. В commit нет новых реальных данных и изменений чужого ownership.
 
 ### B2 — T+35–90, 02:50–03:45: рабочий реальный subset и detector
 
@@ -104,7 +106,7 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 **Тесты:** one-off spike versus повторяемый крупный заказ; category/short-history fallback; unsupported signed movement не становится продажей; MOQ missing не равен 1; metre/coil без mapping блокируется; отдельные документированные продажи с разными IDs не дедуплицируются по похожести.
 
-**PR B2:** `Systeme real preview and project candidate classification`. A подключает классификацию к demand-events API, C — через A.
+**Checkpoint B2:** `Systeme real preview and project candidate classification`. A подключает классификацию к demand-events API, C — через A.
 
 ### B3 — T+90–140, 03:45–04:35: полный сильный baseline
 
@@ -120,7 +122,7 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 **Тесты:** known stockout увеличивает corrected demand; in-stock zero не изменяется; overlapping intervals не удваивают loss; `corrected=observed+lost`; рост/сезонность ожидаемо меняют forecast; replace исключает double growth; nonnegative finite output; mean decomposition сходится; horizon 90 полон.
 
-**PR B3:** `stockout recovery and seasonal forecast with uncertainty fallback`.
+**Checkpoint B3:** `stockout recovery and seasonal forecast with uncertainty fallback`.
 
 ### B4 — T+140–170, 04:35–05:05: проверка и интеграция
 
@@ -131,9 +133,9 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 5. Интеграционно прогнать с A/C: project spike, stockout recovery, seasonal/growth, реальный blocked subset. Сохранить seed/as_of/snapshot/model версии.
 6. Дать A краткие commands и ограничения для README, измеренные row counts/время без заявления enterprise benchmark.
 
-**DoD:** merged работа B потребляется реальным backend; нет UI-only подставленных рекомендаций; отчёт и тесты повторяются. Known limitations доступны C для корректной демонстрации.
+**DoD:** интегрированная в main работа B потребляется реальным backend; нет UI-only подставленных рекомендаций; отчёт и тесты повторяются. Known limitations доступны C для корректной демонстрации.
 
-**PR B4:** `evaluation evidence and integration fixes`.
+**Checkpoint B4:** `evaluation evidence and integration fixes`.
 
 ## 6. Общие отсечки и что урезать
 
@@ -163,7 +165,7 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 ## 8. Финальный DoD B
 
-- [ ] Изменены только свои файлы; raw supplier data/секретов в PR нет.
+- [ ] Изменены только свои файлы; новые raw supplier data/секреты в commit не добавлены.
 - [ ] Оба публичных интерфейса совместимы с общими runtime types; артефакты имеют mode/as_of/version/hash.
 - [ ] Полный synthetic run и ограниченный real preview различимы; unknown остаётся unknown.
 - [ ] Blind detector выявляет разовый spike; повторяемость/рост имеют контрпример; review pending виден.
@@ -176,10 +178,10 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 ```text
 Ты — исполнитель B сильного хакатонного MVP Elektrokomplekt. Срок всего 225 минут: 02:15–06:00. Прочитай AGENTS.md, если существует, docs/mvp/contracts.md, docs/mvp/participant-b-data-forecast.md и docs/source-data-assessment.md. Большой architecture-blueprint — контекст следующих этапов; текущий контракт имеет приоритет.
-Работай в отдельном checkout/ветке codex/data-forecast. Твой scope: src/ekt/data/**, src/ekt/forecast/**, tests/data/**, tests/forecast/**, scripts/profile_sources.py, scripts/build_snapshot.py. Общие contracts, зависимости/lock, fixture factory и CI меняет только A. Не дублируй их.
+Работай непосредственно в main. Не создавай новые ветки, worktree или PR; сохраняй изменения других участников. Твой scope: src/ekt/data/**, src/ekt/forecast/**, tests/data/**, tests/forecast/**, scripts/profile_sources.py, scripts/build_snapshot.py. Общие contracts, зависимости/lock, fixture factory и CI меняет только A. Не дублируй их.
 Реализуй build_snapshot(SourceManifest, MappingConfig)->SnapshotManifest и build_forecast(SnapshotManifest, ForecastRequest)->ForecastArtifact. До T+35 отдай рабочую synthetic вертикаль; до T+90 — real Systeme subset и statistical project detector; до T+140 — stockout recovery, seasonal/growth forecast на90дней и uncertainty fallback; T+170 feature cutoff, T+185 freeze, T+205 release.
 Real source paths бери из локального manifest, исходники read-only. У организатора каталоги /Users/senynmaman/Downloads/IEK/ и /Users/senynmaman/Downloads/Systeme electric/, у меня могут отличаться. Не коммить реальные файлы, raw data, секреты или local configs. Если нет доступа, работай на portable fixtures A и подготовь smoke для его машины.
 Signed movements не считай все продажами; не выдумывай customer IDs/stockout intervals; MOQ != multiple; metre/coil требуют conversion; monthly reports не добавляй к overlapping transactions; сентябрь частичный. Missing данные показывай в quality, не подменяй 0/1. Synthetic/assumed input всегда видимы.
 Detector получает исходные признаки, не ground-truth labels. Сам выявляет one-off suspected_project; временное robust exclusion явно buyer-reviewed и не означает подтверждённый проект. Исторический project не создаёт нового обязательства. Recovery только по known interval; in-stock zero сохраняется. Forecast выдаёт daily baseline/seasonal/growth и scenario_paths или documented iid_residual_normal; A владеет SS/ROP/финальным заказом. Не реализуй API/UI/approval/export.
-Сдавай маленькие PR B1–B4, запускай meaningful tests своего изменения. Сообщай A готовые interfaces/artifact IDs, конкретные blockers, следующий checkpoint. После T+140 не начинай новые модели/зависимости; перед cutoff интегрируй с реальным backend. Не заявляй достигнутый CSL, бизнес-эффект или enterprise scale без измерения.
+Сдавай небольшие проверенные commits B1–B4 в main, запускай meaningful tests своего изменения. Сообщай A готовые interfaces/artifact IDs, конкретные blockers, следующий checkpoint. После T+140 не начинай новые модели/зависимости; перед cutoff интегрируй с реальным backend. Не заявляй достигнутый CSL, бизнес-эффект или enterprise scale без измерения.
 ```
