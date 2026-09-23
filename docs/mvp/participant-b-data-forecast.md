@@ -427,3 +427,7 @@ Ruff чистый; настоящий HTTP workflow
 Классификация уже доступна через API, полная recovery/decomposition диагностика
 потребует read-only проекции A и отображения C. Nullable/signed audit не следует
 молча преобразовывать к строгому nonnegative `CorrectedDemand`.
+
+Публикация подтверждена: fixes `7d4f543`, evidence `7609449` в `origin/main`.
+Новый clone из GitHub: **16 runtime/integration/evidence tests passed**,
+hash синтетического отчёта совпал. Подробный протокол — в аудите.
