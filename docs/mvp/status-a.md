@@ -60,6 +60,10 @@ build_forecast(snapshot: SnapshotManifest, request: ForecastRequest) -> Forecast
 
 Численные проверки planner находятся в `tests/planning`, контрактные — в `tests/contracts`, storage — в `tests/storage`, API — в `tests/api`. Команды приведены в корневом README. **Проверенный checkpoint A:** commit `d619ac2` опубликован в `main`; полный suite на этом этапе — **64 passed**, Ruff — без ошибок (результат подтверждён интегратором A). Это проверка текущего backend, не свидетельство готовности модулей B/C. Финальные результаты общей приёмки и release SHA фиксируются после их подключения.
 
+На checkpoint `49db849` повторно прошли **64 теста**, Ruff и `scripts/smoke_api.py` через запущенный uvicorn. HTTP-проход проверил два предложения поставщикам, запрет экспорта черновика, правку с версией 2, approval/CSV и изолированный сценарий 95% → 99%. Синтетический baseline: 2 483 125 KZT; сценарий: 2 656 250 KZT. Это демонстрационные числа, не финансовый эффект компании.
+
+CI настроен в `.github/workflows/checks.yml`. [Запуск GitHub Actions](https://github.com/BAITC-Hacks/hack-20ebc90b-codex-monsters/actions/runs/35844817924) не начал ни одного шага: аннотация GitHub — `The job was not started because your account is locked due to a billing issue.` Проверка на Linux runner пока не подтверждена; локальные проверки выше прошли. Для возобновления облачного CI владелец аккаунта должен решить вопрос биллинга.
+
 Остаются совместные этапы: подключить B, подключить UI C, пройти live snapshot → run → explanation → scenario → edit → approve → CSV, зафиксировать ограничения данных и провести репетицию.
 
 В MVP нет реальной передачи в ERP/поставщикам, SSO, нескольких workers, распределённого исполнения или доказанного достигнутого CSL. Demo identity задаётся серверным окружением. Целевой сервис и синтетические финансовые расчёты не выдаются за измеренный бизнес-эффект.
