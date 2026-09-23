@@ -16,7 +16,7 @@
 .stMain h1 {font-size: 2rem; font-weight: 650; letter-spacing: -0.025em; line-height: 1.2;}
 .stMain h3 {font-size: 1.25rem; font-weight: 600; line-height: 1.35;}
 [data-testid="stMetricValue"] {font-size: 1.65rem; font-variant-numeric: tabular-nums;}
-[data-testid="stCaptionContainer"] {color: var(--buyer-muted);}
+[data-testid="stCaptionContainer"] {color: var(--buyer-muted); opacity: 1;}
 [data-testid="stForm"] {border: 0; padding: 0;}
 
 /* A single-choice navigation strip. Keep the native radio inputs available to
