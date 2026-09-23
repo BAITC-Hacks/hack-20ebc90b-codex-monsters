@@ -165,14 +165,14 @@ A вызывает B в одном worker. B не пишет SQLite operational 
 
 ## 8. Финальный DoD B
 
-- [ ] Изменены только свои файлы; новые raw supplier data/секреты в commit не добавлены.
-- [ ] Оба публичных интерфейса совместимы с общими runtime types; артефакты имеют mode/as_of/version/hash.
-- [ ] Полный synthetic run и ограниченный real preview различимы; unknown остаётся unknown.
-- [ ] Blind detector выявляет разовый spike; повторяемость/рост имеют контрпример; review pending виден.
-- [ ] Recovery проверено независимо, отсутствующие реальные stockout logs не выдуманы.
-- [ ] 90-day forecast/decomposition/uncertainty потребляются A; no double counting recovery/growth.
-- [ ] Минимальные проверки утечки будущего, UOM/signs и missing fields проходят.
-- [ ] C получает всё через API A; seed/артефакты/ограничения готовы к репетиции.
+- [x] Код изменён только в scope B; архивы добавлены отдельным a744fc2 по прямому поручению пользователя; секретов нет.
+- [x] Оба публичных интерфейса совместимы с общими runtime types; артефакты имеют mode/as_of/version/hash.
+- [x] Полный synthetic run и ограниченный real preview различимы; unknown остаётся unknown.
+- [x] Blind detector выявляет разовый spike; повторяемость/рост имеют контрпример; review pending виден.
+- [x] Recovery проверено независимо, отсутствующие реальные stockout logs не выдуманы.
+- [x] 90-day forecast/decomposition/uncertainty потребляются A; no double counting recovery/growth.
+- [x] Минимальные проверки утечки будущего, UOM/signs и missing fields проходят.
+- [x] C получает всё через API A; seed/артефакты/ограничения готовы к репетиции.
 
 ## 9. Копируемое задание Codex участника B
 
@@ -348,3 +348,37 @@ training-only scale, temporal holdout/rolling origins и независимую 
 B применяет именно именованный preset, сверяет зарегистрированные пути и
 checksums. В этом режиме соседние незарегистрированные файлы не ищутся и не
 читаются. Поля preview остаются blocked/degraded по тем же правилам, что у CLI.
+
+### Зафиксированный итог проверки B
+
+На объединённом коде `7c647a6` (foundation A, UI C, реализация B):
+
+- Python **3.12.1**, окружение установлено командой `uv sync --frozen` из общего
+  lock; PyArrow 23.0.1, Pydantic 2.13.5.
+- `pytest -q`: **231 passed, 45 subtests passed**; одно upstream deprecation
+  warning Starlette/httpx. `ruff check .`: **All checks passed**.
+- Fresh clone: **10 integration/runtime tests passed**; проверено, что импорт идёт
+  из новой копии репозитория, а не из рабочего checkout.
+- Реальный локальный HTTP smoke `scripts/smoke_api.py`: **passed**,
+  `model_version=robust-daily-v1.1`, два поставщика, ручная правка до version 2,
+  approval, CSV, scenario95→99; утверждённая версия не изменена сценарием.
+- Real preview snapshot: `b5bdede6b9158d4ba836f7d79b2fb99e3cf049a5565a8dcd7e89ef0d4e482ad1`;
+  forecast: `forecast-052cea74a6db0ec2e840f3cc`. Это локальные immutable artifacts,
+  их пути не переносимы; другой участник пересобирает их из тех же архивов.
+
+Минимальные два rolling origins на независимом синтетическом ряду в одной UOM
+(`history[i] = 10 + 0.05*i + 2*(i % 7 == 0)`, 180 дней с 2026-01-01, horizon14):
+
+| Train days | Model | WAPE | Bias | MASE |
+|---|---|---:|---:|---:|
+| 120 | recent mean28 | 0.063212 | -0.063212 | 1.729412 |
+| 120 | B baseline | 0.039729 | -0.039729 | 1.086932 |
+| 150 | recent mean28 | 0.057977 | -0.057977 | 1.714521 |
+| 150 | B baseline | 0.036515 | -0.036515 | 1.079850 |
+
+Воспроизведение использует `rolling_origin_evaluation(history, [120,150], 14,
+callback, uom='piece')`; callback переводит полученный только train-prefix в
+`[{date, corrected_demand}]`, вызывает `forecast_daily` на следующих 14 датах и
+возвращает `daily[].mean`. В metric scale не попадают holdout-значения. Это
+проверка расчёта на известной синтетике, а не измеренная точность на реальных
+продажах или доказательство бизнес-эффекта.
