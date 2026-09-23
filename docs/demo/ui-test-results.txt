@@ -1,0 +1,78 @@
+test_base_url_gets_exactly_one_v1_prefix (test_http_client.HttpClientTests.test_base_url_gets_exactly_one_v1_prefix) ... ok
+test_csv_export_preserves_exact_backend_bytes_and_retry_key (test_http_client.HttpClientTests.test_csv_export_preserves_exact_backend_bytes_and_retry_key) ... ok
+test_id_is_one_url_path_segment_and_version_is_query (test_http_client.HttpClientTests.test_id_is_one_url_path_segment_and_version_is_query) ... ok
+test_internal_mutation_error_is_ambiguous_without_automatic_retry (test_http_client.HttpClientTests.test_internal_mutation_error_is_ambiguous_without_automatic_retry) ... ok
+test_json_success_cannot_be_downloaded_as_approved_csv (test_http_client.HttpClientTests.test_json_success_cannot_be_downloaded_as_approved_csv) ... ok
+test_list_filters_are_encoded_and_none_is_omitted (test_http_client.HttpClientTests.test_list_filters_are_encoded_and_none_is_omitted) ... ok
+test_malformed_json_is_an_explicit_error (test_http_client.HttpClientTests.test_malformed_json_is_an_explicit_error) ... ok
+test_mutating_routes_and_payloads_match_contract (test_http_client.HttpClientTests.test_mutating_routes_and_payloads_match_contract) ... ok
+test_mutation_timeout_requires_reconciliation_and_is_not_retried (test_http_client.HttpClientTests.test_mutation_timeout_requires_reconciliation_and_is_not_retried) ... ok
+test_non_json_error_does_not_become_mock_success (test_http_client.HttpClientTests.test_non_json_error_does_not_become_mock_success) ... ok
+test_optional_bearer_token_is_sent_only_when_configured (test_http_client.HttpClientTests.test_optional_bearer_token_is_sent_only_when_configured) ... ok
+test_patch_preserves_decimal_string_and_reason (test_http_client.HttpClientTests.test_patch_preserves_decimal_string_and_reason) ... ok
+test_read_does_not_turn_decimal_strings_or_null_into_numbers (test_http_client.HttpClientTests.test_read_does_not_turn_decimal_strings_or_null_into_numbers) ... ok
+test_read_job_snapshot_run_scenario_and_event_routes (test_http_client.HttpClientTests.test_read_job_snapshot_run_scenario_and_event_routes) ... ok
+test_read_timeout_is_retryable_but_not_ambiguous_mutation (test_http_client.HttpClientTests.test_read_timeout_is_retryable_but_not_ambiguous_mutation) ... ok
+test_redirect_is_not_followed_with_configured_token (test_http_client.HttpClientTests.test_redirect_is_not_followed_with_configured_token) ... ok
+test_request_rejects_nonfinite_number_before_network (test_http_client.HttpClientTests.test_request_rejects_nonfinite_number_before_network) ... ok
+test_server_errors_keep_status_code_details_and_retryability (test_http_client.HttpClientTests.test_server_errors_keep_status_code_details_and_retryability) ... ok
+test_approval_edit_reapproval_and_export_are_bound_to_current_version (test_mock_workflow.MockWorkflowTests.test_approval_edit_reapproval_and_export_are_bound_to_current_version) ... ok
+test_blocked_profile_disables_and_enforces_approval (test_mock_workflow.MockWorkflowTests.test_blocked_profile_disables_and_enforces_approval) ... ok
+test_export_of_draft_is_rejected (test_mock_workflow.MockWorkflowTests.test_export_of_draft_is_rejected) ... ok
+test_export_repeat_returns_same_saved_bytes (test_mock_workflow.MockWorkflowTests.test_export_repeat_returns_same_saved_bytes) ... ok
+test_fixture_has_two_suppliers_and_keeps_incompatible_uoms_separate (test_mock_workflow.MockWorkflowTests.test_fixture_has_two_suppliers_and_keeps_incompatible_uoms_separate) ... ok
+test_golden_and_all_fixture_ledgers_equal_selected_base_quantity (test_mock_workflow.MockWorkflowTests.test_golden_and_all_fixture_ledgers_equal_selected_base_quantity) ... ok
+test_invalid_quantity_and_empty_reason_leave_proposal_unchanged (test_mock_workflow.MockWorkflowTests.test_invalid_quantity_and_empty_reason_leave_proposal_unchanged) ... ok
+test_manual_override_keeps_recommendation_and_explains_delta (test_mock_workflow.MockWorkflowTests.test_manual_override_keeps_recommendation_and_explains_delta) ... ok
+test_reads_are_copies_so_local_widget_edits_do_not_mutate_mock (test_mock_workflow.MockWorkflowTests.test_reads_are_copies_so_local_widget_edits_do_not_mutate_mock) ... ok
+test_scenario_is_isolated_and_repeated_key_does_not_create_new_job (test_mock_workflow.MockWorkflowTests.test_scenario_is_isolated_and_repeated_key_does_not_create_new_job) ... ok
+test_stale_patch_and_hash_cannot_overwrite_new_version (test_mock_workflow.MockWorkflowTests.test_stale_patch_and_hash_cannot_overwrite_new_version) ... ok
+test_unknown_line_cannot_edit_a_different_row_by_position (test_mock_workflow.MockWorkflowTests.test_unknown_line_cannot_edit_a_different_row_by_position) ... ok
+test_unsupported_budget_is_explicit_and_leaves_baseline_unchanged (test_mock_workflow.MockWorkflowTests.test_unsupported_budget_is_explicit_and_leaves_baseline_unchanged) ... ok
+test_zero_order_is_supported_without_moq_top_up (test_mock_workflow.MockWorkflowTests.test_zero_order_is_supported_without_moq_top_up) ... ok
+test_configured_endpoint_retains_server_credentials (test_orders_app.CredentialScopeTests.test_configured_endpoint_retains_server_credentials) ... ok
+test_configured_token_never_follows_an_edited_endpoint (test_orders_app.CredentialScopeTests.test_configured_token_never_follows_an_edited_endpoint) ... ok
+test_approval_of_stale_review_is_blocked_before_post (test_orders_app.OrdersAppTests.test_approval_of_stale_review_is_blocked_before_post) ... 2026-09-23 14:39:36.971 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_builtin_table_export_is_disabled_to_preserve_approval_gate (test_orders_app.OrdersAppTests.test_builtin_table_export_is_disabled_to_preserve_approval_gate) ... 2026-09-23 14:39:37.572 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_conflicting_patch_preserves_draft_and_requires_explicit_rebase (test_orders_app.OrdersAppTests.test_conflicting_patch_preserves_draft_and_requires_explicit_rebase) ... 2026-09-23 14:39:37.635 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_edit_approve_refresh_export_then_edit_invalidates_download (test_orders_app.OrdersAppTests.test_edit_approve_refresh_export_then_edit_invalidates_download) ... 2026-09-23 14:39:37.721 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_export_timeout_retains_key_for_same_logical_attempt (test_orders_app.OrdersAppTests.test_export_timeout_retains_key_for_same_logical_attempt) ... 2026-09-23 14:39:37.929 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_missing_role_is_not_shown_as_success_and_draft_survives (test_orders_app.OrdersAppTests.test_missing_role_is_not_shown_as_success_and_draft_survives) ... 2026-09-23 14:39:38.076 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_selection_survives_sort_and_filter_changes_and_edits_by_line_id (test_orders_app.OrdersAppTests.test_selection_survives_sort_and_filter_changes_and_edits_by_line_id) ... 2026-09-23 14:39:38.163 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_three_tabs_and_explicit_mock_label (test_orders_app.OrdersAppTests.test_three_tabs_and_explicit_mock_label) ... 2026-09-23 14:39:38.345 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_validation_error_keeps_quantity_and_reason_for_correction (test_orders_app.OrdersAppTests.test_validation_error_keeps_quantity_and_reason_for_correction) ... 2026-09-23 14:39:38.427 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_ambiguous_scenario_retry_reuses_key (test_secondary_views.SecondaryViewsTests.test_ambiguous_scenario_retry_reuses_key) ... 2026-09-23 14:39:38.543 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_budget_disabled_without_top_level_capability (test_secondary_views.SecondaryViewsTests.test_budget_disabled_without_top_level_capability) ... 2026-09-23 14:39:38.599 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_context_and_proposal_version_invalidate_scenario_display (test_secondary_views.SecondaryViewsTests.test_context_and_proposal_version_invalidate_scenario_display) ... 2026-09-23 14:39:38.648 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-09-23 14:39:38.707 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_failed_run_hides_prior_classification (test_secondary_views.SecondaryViewsTests.test_failed_run_hides_prior_classification) ... 2026-09-23 14:39:38.709 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_invalid_new_scenario_hides_previous_result (test_secondary_views.SecondaryViewsTests.test_invalid_new_scenario_hides_previous_result) ... 2026-09-23 14:39:38.768 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_project_pagination_resets_on_filter_change (test_secondary_views.SecondaryViewsTests.test_project_pagination_resets_on_filter_change) ... 2026-09-23 14:39:38.823 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_scenario_refresh_does_not_resubmit_or_mutate_base (test_secondary_views.SecondaryViewsTests.test_scenario_refresh_does_not_resubmit_or_mutate_base) ... 2026-09-23 14:39:38.912 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_selecting_unknown_snapshot_retains_valid_context (test_secondary_views.SecondaryViewsTests.test_selecting_unknown_snapshot_retains_valid_context) ... 2026-09-23 14:39:38.969 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_snapshot_job_is_observed_without_recreating_snapshot (test_secondary_views.SecondaryViewsTests.test_snapshot_job_is_observed_without_recreating_snapshot) ... 2026-09-23 14:39:39.030 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_snapshot_timeout_cannot_silently_create_duplicate (test_secondary_views.SecondaryViewsTests.test_snapshot_timeout_cannot_silently_create_duplicate) ... 2026-09-23 14:39:39.118 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+
+----------------------------------------------------------------------
+Ran 53 tests in 2.951s
+
+OK

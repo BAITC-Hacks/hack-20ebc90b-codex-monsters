@@ -1,0 +1,3010 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Elektrokomplekt Replenishment MVP",
+    "description": "Buyer-controlled recommendations. Synthetic replay and local CSV only; no vendor transmission.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources": {
+      "get": {
+        "summary": "Sources",
+        "operationId": "sources_v1_sources_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots": {
+      "post": {
+        "summary": "Create Snapshot",
+        "operationId": "create_snapshot_v1_snapshots_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "get": {
+        "summary": "Job",
+        "operationId": "job_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots/{snapshot_id}": {
+      "get": {
+        "summary": "Snapshot",
+        "operationId": "snapshot_v1_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotManifest"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/planning-runs": {
+      "post": {
+        "summary": "Start Run",
+        "operationId": "start_run_v1_planning_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanningRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningRunAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/planning-runs/{run_id}": {
+      "get": {
+        "summary": "Run",
+        "operationId": "run_v1_planning_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningRunStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals": {
+      "get": {
+        "summary": "Proposals",
+        "operationId": "proposals_v1_proposals_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}": {
+      "get": {
+        "summary": "Proposal",
+        "operationId": "proposal_v1_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit",
+        "operationId": "edit_v1_proposals__proposal_id__patch",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/approve": {
+      "post": {
+        "summary": "Approve",
+        "operationId": "approve_v1_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/export": {
+      "post": {
+        "summary": "Export",
+        "operationId": "export_v1_proposals__proposal_id__export_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/scenarios": {
+      "post": {
+        "summary": "Start Scenario",
+        "operationId": "start_scenario_v1_scenarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/scenarios/{scenario_id}": {
+      "get": {
+        "summary": "Scenario",
+        "operationId": "scenario_v1_scenarios__scenario_id__get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/planning-runs/{run_id}/demand-events": {
+      "get": {
+        "summary": "Demand Events",
+        "operationId": "demand_events_v1_planning_runs__run_id__demand_events_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Label"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError"
+      },
+      "ApprovalRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          },
+          "content_hash": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Content Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_version",
+          "content_hash"
+        ],
+        "title": "ApprovalRequest"
+      },
+      "ApprovalResponse": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Approval Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Proposal Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "const": "approved",
+            "title": "Status",
+            "default": "approved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approval_id",
+          "proposal_id",
+          "version"
+        ],
+        "title": "ApprovalResponse"
+      },
+      "Assumption": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Field"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "provenance": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "derived",
+              "synthetic",
+              "override"
+            ],
+            "title": "Provenance"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "scope_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "type": "array",
+            "title": "Scope Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "value",
+          "provenance",
+          "reason"
+        ],
+        "title": "Assumption"
+      },
+      "Capabilities": {
+        "properties": {
+          "can_plan": {
+            "type": "boolean",
+            "title": "Can Plan",
+            "default": false
+          },
+          "can_approve": {
+            "type": "boolean",
+            "title": "Can Approve",
+            "default": false
+          },
+          "can_export": {
+            "type": "boolean",
+            "title": "Can Export",
+            "default": false
+          },
+          "budget_available": {
+            "type": "boolean",
+            "title": "Budget Available",
+            "default": false
+          },
+          "customer_detection_available": {
+            "type": "boolean",
+            "title": "Customer Detection Available",
+            "default": false
+          },
+          "observed_stockouts_available": {
+            "type": "boolean",
+            "title": "Observed Stockouts Available",
+            "default": false
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Capabilities"
+      },
+      "ClassificationRecord": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Event Id"
+          },
+          "sku_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Sku Id"
+          },
+          "warehouse_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Warehouse Id"
+          },
+          "observed_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Observed Qty"
+          },
+          "regular_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Regular Qty"
+          },
+          "project_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Project Qty"
+          },
+          "uncertain_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Uncertain Qty"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "regular",
+              "project",
+              "suspected_project",
+              "uncertain"
+            ],
+            "title": "Label"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "type": "array",
+            "title": "Reason Codes"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "not_required"
+            ],
+            "title": "Review Status",
+            "default": "not_required"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "sku_id",
+          "warehouse_id",
+          "observed_qty",
+          "regular_qty",
+          "project_qty",
+          "uncertain_qty",
+          "label",
+          "confidence"
+        ],
+        "title": "ClassificationRecord"
+      },
+      "DemandEventPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClassificationRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "diagnostics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Diagnostics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "DemandEventPage"
+      },
+      "ExcludedLine": {
+        "properties": {
+          "sku_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Sku Id"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssue"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sku_id",
+          "reasons"
+        ],
+        "title": "ExcludedLine"
+      },
+      "ExplanationComponent": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "delta_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delta Base Qty"
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Refs"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "label",
+          "delta_base_qty"
+        ],
+        "title": "ExplanationComponent"
+      },
+      "ExportRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_version",
+          "idempotency_key"
+        ],
+        "title": "ExportRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "identity_mode": {
+            "type": "string",
+            "const": "demo",
+            "title": "Identity Mode",
+            "default": "demo"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "vendor_transmission_enabled": {
+            "type": "boolean",
+            "const": false,
+            "title": "Vendor Transmission Enabled",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "actor",
+          "role"
+        ],
+        "title": "HealthResponse"
+      },
+      "JobAccepted": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Job Id"
+          },
+          "status_url": {
+            "type": "string",
+            "title": "Status Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "status_url"
+        ],
+        "title": "JobAccepted"
+      },
+      "JobStatus": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Ref"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "synthetic_demo",
+                  "real_preview"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "progress",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "JobStatus"
+      },
+      "PlanningPolicy-Input": {
+        "properties": {
+          "service_metric": {
+            "type": "string",
+            "const": "cycle_service",
+            "title": "Service Metric",
+            "default": "cycle_service"
+          },
+          "service_target": {
+            "type": "number",
+            "exclusiveMaximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Service Target",
+            "default": 0.95
+          },
+          "review_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Days"
+          },
+          "budget_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Cap"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "max_cover_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Cover Days"
+          },
+          "lead_time_delay_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 0.0,
+            "title": "Lead Time Delay Days",
+            "default": 0
+          },
+          "policy_version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Policy Version",
+            "default": "mvp-v1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PlanningPolicy"
+      },
+      "PlanningPolicy-Output": {
+        "properties": {
+          "service_metric": {
+            "type": "string",
+            "const": "cycle_service",
+            "title": "Service Metric",
+            "default": "cycle_service"
+          },
+          "service_target": {
+            "type": "number",
+            "exclusiveMaximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Service Target",
+            "default": 0.95
+          },
+          "review_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Days"
+          },
+          "budget_cap": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Cap"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "max_cover_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Cover Days"
+          },
+          "lead_time_delay_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 0.0,
+            "title": "Lead Time Delay Days",
+            "default": 0
+          },
+          "policy_version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Policy Version",
+            "default": "mvp-v1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PlanningPolicy"
+      },
+      "PlanningRunAccepted": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Run Id"
+          },
+          "status_url": {
+            "type": "string",
+            "title": "Status Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "status_url"
+        ],
+        "title": "PlanningRunAccepted"
+      },
+      "PlanningRunRequest": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Snapshot Id"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PlanningPolicy-Input"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "policy",
+          "idempotency_key"
+        ],
+        "title": "PlanningRunRequest"
+      },
+      "PlanningRunStatus": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Ref"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "synthetic_demo",
+                  "real_preview"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "proposal_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "type": "array",
+            "title": "Proposal Ids"
+          },
+          "forecast_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Id"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanningPolicy-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot_manifest_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Manifest Hash"
+          },
+          "forecast_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "progress",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PlanningRunStatus"
+      },
+      "ProposalDetail": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Proposal Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "default": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved"
+            ],
+            "title": "Status",
+            "default": "draft"
+          },
+          "content_hash": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Content Hash"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Run Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Snapshot Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "synthetic_demo",
+              "real_preview"
+            ],
+            "title": "Mode"
+          },
+          "supplier_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Supplier Id"
+          },
+          "warehouse_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Warehouse Id"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssue"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalLine"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "excluded_lines": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedLine"
+            },
+            "type": "array",
+            "title": "Excluded Lines"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "content_hash",
+          "run_id",
+          "snapshot_id",
+          "mode",
+          "supplier_id",
+          "warehouse_id",
+          "as_of",
+          "capabilities",
+          "lines"
+        ],
+        "title": "ProposalDetail"
+      },
+      "ProposalEdit": {
+        "properties": {
+          "line_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Line Id"
+          },
+          "purchase_qty": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Purchase Qty"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "line_id",
+          "purchase_qty"
+        ],
+        "title": "ProposalEdit"
+      },
+      "ProposalLine": {
+        "properties": {
+          "line_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Line Id"
+          },
+          "sku_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Sku Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_uom": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Base Uom"
+          },
+          "purchase_uom": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Purchase Uom"
+          },
+          "recommended_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Recommended Base Qty"
+          },
+          "recommended_purchase_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Recommended Purchase Qty"
+          },
+          "selected_purchase_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Selected Purchase Qty"
+          },
+          "selected_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Selected Base Qty"
+          },
+          "moq_purchase": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Moq Purchase"
+          },
+          "pack_multiple_purchase": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pack Multiple Purchase"
+          },
+          "conversion": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Conversion"
+          },
+          "quantity_quantum": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity Quantum",
+            "default": "1"
+          },
+          "rop": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rop"
+          },
+          "safety_stock": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Safety Stock"
+          },
+          "raw_need": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Raw Need"
+          },
+          "unit_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Cost"
+          },
+          "line_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Cost"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "soon",
+              "routine"
+            ],
+            "title": "Urgency"
+          },
+          "projected_stockout_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Stockout Date"
+          },
+          "explanation": {
+            "items": {
+              "$ref": "#/components/schemas/ExplanationComponent"
+            },
+            "type": "array",
+            "title": "Explanation"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssue"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "line_id",
+          "sku_id",
+          "name",
+          "base_uom",
+          "purchase_uom",
+          "recommended_base_qty",
+          "recommended_purchase_qty",
+          "selected_purchase_qty",
+          "selected_base_qty",
+          "moq_purchase",
+          "pack_multiple_purchase",
+          "conversion",
+          "rop",
+          "safety_stock",
+          "raw_need",
+          "urgency",
+          "explanation"
+        ],
+        "title": "ProposalLine"
+      },
+      "ProposalPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ProposalPage"
+      },
+      "ProposalPatchRequest": {
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          },
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalEdit"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Edits"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_version",
+          "edits",
+          "reason"
+        ],
+        "title": "ProposalPatchRequest"
+      },
+      "ProposalSummary": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Proposal Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved"
+            ],
+            "title": "Status"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Run Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Snapshot Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "synthetic_demo",
+              "real_preview"
+            ],
+            "title": "Mode"
+          },
+          "supplier_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Supplier Id"
+          },
+          "warehouse_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Warehouse Id"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          },
+          "line_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Line Count"
+          },
+          "excluded_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Excluded Count",
+            "default": 0
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "version",
+          "status",
+          "run_id",
+          "snapshot_id",
+          "mode",
+          "supplier_id",
+          "warehouse_id",
+          "as_of",
+          "line_count",
+          "capabilities"
+        ],
+        "title": "ProposalSummary"
+      },
+      "QualityIssue": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "blocking"
+            ],
+            "title": "Severity"
+          },
+          "scope_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "type": "array",
+            "title": "Scope Ids"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "QualityIssue"
+      },
+      "QualityReport": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "degraded",
+              "blocked"
+            ],
+            "title": "Status",
+            "default": "ready"
+          },
+          "accepted_rows": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Accepted Rows",
+            "default": 0
+          },
+          "rejected_rows": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Rejected Rows",
+            "default": 0
+          },
+          "affected_skus": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Affected Skus",
+            "default": 0
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "QualityReport"
+      },
+      "ScenarioAccepted": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Scenario Id"
+          },
+          "status_url": {
+            "type": "string",
+            "title": "Status Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "status_url"
+        ],
+        "title": "ScenarioAccepted"
+      },
+      "ScenarioChangedLine": {
+        "properties": {
+          "sku_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Sku Id"
+          },
+          "supplier_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Supplier Id"
+          },
+          "warehouse_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Warehouse Id"
+          },
+          "baseline_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Baseline Base Qty"
+          },
+          "scenario_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Scenario Base Qty"
+          },
+          "delta_base_qty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delta Base Qty"
+          },
+          "baseline_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Cost"
+          },
+          "scenario_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Cost"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sku_id",
+          "supplier_id",
+          "warehouse_id",
+          "baseline_base_qty",
+          "scenario_base_qty",
+          "delta_base_qty"
+        ],
+        "title": "ScenarioChangedLine"
+      },
+      "ScenarioOverrides": {
+        "properties": {
+          "service_target": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Target"
+          },
+          "budget_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Cap"
+          },
+          "lead_time_delay_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 365.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Delay Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScenarioOverrides"
+      },
+      "ScenarioRequest": {
+        "properties": {
+          "base_run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Base Run Id"
+          },
+          "overrides": {
+            "$ref": "#/components/schemas/ScenarioOverrides"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "default": 42
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "base_run_id",
+          "overrides",
+          "idempotency_key"
+        ],
+        "title": "ScenarioRequest"
+      },
+      "ScenarioStatus": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Ref"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "synthetic_demo",
+                  "real_preview"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "base_run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Base Run Id"
+          },
+          "changed_lines": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioChangedLine"
+            },
+            "type": "array",
+            "title": "Changed Lines"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScenarioSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "progress",
+          "created_at",
+          "updated_at",
+          "base_run_id"
+        ],
+        "title": "ScenarioStatus"
+      },
+      "ScenarioSummary": {
+        "properties": {
+          "baseline_total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Total Cost"
+          },
+          "scenario_total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Total Cost"
+          },
+          "delta_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Cost"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "changed_line_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Changed Line Count",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScenarioSummary"
+      },
+      "SnapshotManifest": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Snapshot Id"
+          },
+          "mapping_version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Mapping Version"
+          },
+          "manifest_hash": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Manifest Hash"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "synthetic_demo",
+              "real_preview"
+            ],
+            "title": "Mode"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "title": "Source Refs"
+          },
+          "tables": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TableRef"
+            },
+            "type": "object",
+            "title": "Tables"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/QualityReport"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "mapping_version",
+          "manifest_hash",
+          "mode",
+          "as_of",
+          "created_at",
+          "tables",
+          "quality"
+        ],
+        "title": "SnapshotManifest"
+      },
+      "SnapshotRequest": {
+        "properties": {
+          "source_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "type": "array",
+            "title": "Source Ids"
+          },
+          "mapping_version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Mapping Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "synthetic_demo",
+              "real_preview"
+            ],
+            "title": "Mode"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_ids",
+          "mapping_version",
+          "mode",
+          "as_of"
+        ],
+        "title": "SnapshotRequest"
+      },
+      "SourceMetadata": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Source Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Kind"
+          },
+          "import_state": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "importing",
+              "ready",
+              "failed"
+            ],
+            "title": "Import State",
+            "default": "registered"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "synthetic_demo",
+              "real_preview"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "name",
+          "kind",
+          "mode"
+        ],
+        "title": "SourceMetadata"
+      },
+      "SourcePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceMetadata"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SourcePage"
+      },
+      "SourceRef": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Source Id"
+          },
+          "checksum": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Checksum"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Kind"
+          },
+          "local_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Ref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "checksum",
+          "kind"
+        ],
+        "title": "SourceRef"
+      },
+      "TableRef": {
+        "properties": {
+          "uri": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Uri"
+          },
+          "format": {
+            "type": "string",
+            "const": "parquet",
+            "title": "Format",
+            "default": "parquet"
+          },
+          "row_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Row Count"
+          },
+          "checksum": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Checksum"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uri",
+          "row_count",
+          "checksum"
+        ],
+        "title": "TableRef"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

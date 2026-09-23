@@ -463,28 +463,60 @@
             "$ref": "#/$defs/Uncertainty"
           },
           "observed_regular_total": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
             "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Observed Regular Total",
-            "type": "string"
+            "title": "Observed Regular Total"
           },
           "estimated_lost_total": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
             "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Estimated Lost Total",
-            "type": "string"
+            "title": "Estimated Lost Total"
           },
           "project_total": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
             "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Project Total",
-            "type": "string"
+            "title": "Project Total"
           },
           "uncertain_total": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
             "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Uncertain Total",
-            "type": "string"
+            "title": "Uncertain Total"
           },
           "classification_policy": {
             "enum": [
@@ -871,6 +903,10 @@
           "budget_cap": {
             "anyOf": [
               {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
@@ -969,9 +1005,16 @@
             "type": "string"
           },
           "delta_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Delta Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Delta Base Qty"
           },
           "source_refs": {
             "items": {
@@ -1085,63 +1128,155 @@
         "type": "string"
       },
       "recommended_base_qty": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Recommended Base Qty",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Recommended Base Qty"
       },
       "recommended_purchase_qty": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Recommended Purchase Qty",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Recommended Purchase Qty"
       },
       "selected_purchase_qty": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Selected Purchase Qty",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Selected Purchase Qty"
       },
       "selected_base_qty": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Selected Base Qty",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Selected Base Qty"
       },
       "moq_purchase": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Moq Purchase",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Moq Purchase"
       },
       "pack_multiple_purchase": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Pack Multiple Purchase",
-        "type": "string"
+        "anyOf": [
+          {
+            "exclusiveMinimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Pack Multiple Purchase"
       },
       "conversion": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Conversion",
-        "type": "string"
+        "anyOf": [
+          {
+            "exclusiveMinimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Conversion"
       },
       "quantity_quantum": {
+        "anyOf": [
+          {
+            "exclusiveMinimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
         "default": "1",
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Quantity Quantum",
-        "type": "string"
+        "title": "Quantity Quantum"
       },
       "rop": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Rop",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Rop"
       },
       "safety_stock": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Safety Stock",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Safety Stock"
       },
       "raw_need": {
-        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-        "title": "Raw Need",
-        "type": "string"
+        "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          }
+        ],
+        "title": "Raw Need"
       },
       "unit_cost": {
         "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
           {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "type": "string"
@@ -1155,6 +1290,10 @@
       },
       "line_cost": {
         "anyOf": [
+          {
+            "minimum": 0.0,
+            "type": "number"
+          },
           {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "type": "string"
@@ -1727,6 +1866,97 @@
         "title": "Capabilities",
         "type": "object"
       },
+      "PlanningPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "service_metric": {
+            "const": "cycle_service",
+            "default": "cycle_service",
+            "title": "Service Metric",
+            "type": "string"
+          },
+          "service_target": {
+            "default": 0.95,
+            "exclusiveMaximum": 1,
+            "exclusiveMinimum": 0,
+            "title": "Service Target",
+            "type": "number"
+          },
+          "review_days": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Review Days"
+          },
+          "budget_cap": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Budget Cap"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Currency"
+          },
+          "max_cover_days": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Max Cover Days"
+          },
+          "lead_time_delay_days": {
+            "default": 0,
+            "maximum": 365,
+            "minimum": 0,
+            "title": "Lead Time Delay Days",
+            "type": "integer"
+          },
+          "policy_version": {
+            "default": "mvp-v1",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Policy Version",
+            "type": "string"
+          }
+        },
+        "title": "PlanningPolicy",
+        "type": "object"
+      },
       "QualityIssue": {
         "additionalProperties": false,
         "properties": {
@@ -1963,6 +2193,66 @@
         ],
         "default": null,
         "title": "Forecast Id"
+      },
+      "as_of": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "As Of"
+      },
+      "seed": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Seed"
+      },
+      "policy": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PlanningPolicy"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "snapshot_manifest_hash": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Snapshot Manifest Hash"
+      },
+      "forecast_hash": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Forecast Hash"
       }
     },
     "required": [
@@ -2172,22 +2462,49 @@
             "type": "string"
           },
           "baseline_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Baseline Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Baseline Base Qty"
           },
           "scenario_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Scenario Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Scenario Base Qty"
           },
           "delta_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Delta Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Delta Base Qty"
           },
           "baseline_cost": {
             "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -2201,6 +2518,10 @@
           },
           "scenario_cost": {
             "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -2230,6 +2551,10 @@
           "baseline_total_cost": {
             "anyOf": [
               {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
@@ -2243,6 +2568,10 @@
           "scenario_total_cost": {
             "anyOf": [
               {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
@@ -2255,6 +2584,9 @@
           },
           "delta_cost": {
             "anyOf": [
+              {
+                "type": "number"
+              },
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -2536,9 +2868,16 @@
             "type": "string"
           },
           "delta_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Delta Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Delta Base Qty"
           },
           "source_refs": {
             "items": {
@@ -2600,63 +2939,155 @@
             "type": "string"
           },
           "recommended_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Recommended Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Recommended Base Qty"
           },
           "recommended_purchase_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Recommended Purchase Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Recommended Purchase Qty"
           },
           "selected_purchase_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Selected Purchase Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Selected Purchase Qty"
           },
           "selected_base_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Selected Base Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Selected Base Qty"
           },
           "moq_purchase": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Moq Purchase",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Moq Purchase"
           },
           "pack_multiple_purchase": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Pack Multiple Purchase",
-            "type": "string"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Pack Multiple Purchase"
           },
           "conversion": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Conversion",
-            "type": "string"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Conversion"
           },
           "quantity_quantum": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
             "default": "1",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Quantity Quantum",
-            "type": "string"
+            "title": "Quantity Quantum"
           },
           "rop": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Rop",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Rop"
           },
           "safety_stock": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Safety Stock",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Safety Stock"
           },
           "raw_need": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Raw Need",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Raw Need"
           },
           "unit_cost": {
             "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -2670,6 +3101,10 @@
           },
           "line_cost": {
             "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -2876,6 +3311,10 @@
       "total_cost": {
         "anyOf": [
           {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "type": "string"
           },
@@ -3048,6 +3487,10 @@
           "total_cost": {
             "anyOf": [
               {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
@@ -3142,24 +3585,56 @@
             "type": "string"
           },
           "observed_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Observed Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Observed Qty"
           },
           "regular_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Regular Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Regular Qty"
           },
           "project_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Project Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Project Qty"
           },
           "uncertain_qty": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Uncertain Qty",
-            "type": "string"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Uncertain Qty"
           },
           "label": {
             "enum": [

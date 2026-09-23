@@ -1,5 +1,7 @@
 # Сильный HackAlem MVP: план на 225 минут
 
+**Актуализация workflow:** по указанию пользователя работать прямо в `main`, без новых веток/worktree/PR. Порядок синхронизации — [git-workflow.md](git-workflow.md); реализация A и точки подключения B/C — [status-a.md](status-a.md). План ниже сохраняет исходные этапы и не является автоматическим отчётом об их завершении.
+
 ## 1. Решение и условия
 
 Подтверждено пользователем: команда из трёх человек, у каждого Codex, общий GitHub-репозиторий. Пользователь отвечает за направление и решения, его Codex — за backend/интеграцию. Два других исполнителя делают данные/прогноз и UI/демо. Время, сообщённое пользователем: 2:15 → 6:00, всего 225 минут. Указанные далее часы используют эту шкалу, независимо от AM/PM. Планирование входит в эти 225 минут; разработку нельзя сдвигать на новый полный интервал после чтения документов.
@@ -36,13 +38,13 @@
 
 ### Real preview
 
-Реальные IEK/Systeme Excel показывают пригодную историю, mapping, ошибочные строки, прогноз и доступные сведения. У данных нет customer IDs/точных stockout logs/всех supplier terms. Это не разрешение придумать недостающие поля. Если нужно показать полный заказ с реальной историей и предположениями — такой результат получает demo provenance. Сырые файлы не публикуются в Git и не нужны CI. Источник данных у каждого участника задаётся локальным config, образец config не содержит личных путей/секретов.
+Реальные IEK/Systeme Excel показывают пригодную историю, mapping, ошибочные строки, прогноз и доступные сведения. У данных нет customer IDs/точных stockout logs/всех supplier terms. Это не разрешение придумать недостающие поля. Если нужно показать полный заказ с реальной историей и предположениями — такой результат получает demo provenance. Новые сырые файлы не добавлять в Git; CI не требует коммерческих данных. Уже внесённые другими участниками файлы самостоятельно не удалять. Источник данных у каждого участника задаётся локальным config, образец config не содержит личных путей/секретов.
 
 Все 12 источников регистрируются и получают статус «используется / контрольный дубликат / не применён: нужна семантика / ошибка». Читаем существующие месячные коэффициенты как source evidence, не складываем дубликаты и не подставляем текущие коэффициенты в исторический backtest. При нехватке времени рабочий real subset сначала строится по Systeme, затем IEK; граница покрытия видна. Full automated enterprise readiness не заявляется.
 
 ## 4. Технический выбор и структура
 
-Python 3.11, FastAPI, Pydantic v2, DuckDB/Parquet для аналитики, SQLite для jobs/proposals/approvals, Streamlit, pytest. Один backend coordinator с одним process-worker для длительных вычислений; UI отдельный процесс. Задачи имеют persisted lifecycle, ошибки не теряются после перезапуска. У UI HTTP-клиент и mock provider с одной формой ответа. Redis/Celery для этого объёма не обязательны.
+Python 3.11, FastAPI, Pydantic v2, DuckDB/Parquet для аналитики, SQLite для jobs/proposals/approvals, Streamlit, pytest. Один backend coordinator с одним локальным worker для длительных вычислений; UI отдельный процесс. Задачи имеют persisted lifecycle, ошибки не теряются после перезапуска. У UI HTTP-клиент и mock provider с одной формой ответа. Redis/Celery для этого объёма не обязательны.
 
 ```mermaid
 flowchart LR
@@ -109,7 +111,7 @@ A владеет pyproject/lock/Docker/CI, shared samples и common config. Ос
 | **2:50–3:15 / T+35–60** | Простейший ordering/API run/SQLite | First actual forecast, preliminary real snapshot | Список supplier proposals и XAI, HTTP adapter | Первый живой end-to-end synthetic run |
 | **3:15–4:00 / T+60–105** | Правильные SS/ROP/netting/MOQ, approval/edit/CSV | Outlier/recovery/season/growth + real subset | Review/approve/export UI, data flags | Сквозной обязательный бизнес-путь работает |
 | **4:00–4:45 / T+105–150** | Scenarios service/delay + conditional budget | Contract tests и corrections, source coverage | Scenario comparison + project table, errors | Три differentiator доступны через live API |
-| **4:45–5:20 / T+150–185** | Merge/integration, негативные cases, launch | Исправляет numerical/data bugs | Исправляет integration/UI bugs, demo script | Acceptance suite, feature freeze5:20 |
+| **4:45–5:20 / T+150–185** | Интеграция main, негативные cases, launch | Исправляет numerical/data bugs | Исправляет integration/UI bugs, demo script | Acceptance suite, feature freeze5:20 |
 | **5:20–5:40 / T+185–205** | Fresh-clone launch, release candidate | Проверяет golden и real gaps | Полная репетиция с A | Один воспроизводимый commit + evidence |
 | **5:40–6:00 / T+205–225** | Только demo-blocking fixes | Помогает защите расчётов | Финальная репетиция/backup | Демонстрация без новых фич |
 
@@ -128,7 +130,7 @@ A владеет pyproject/lock/Docker/CI, shared samples и common config. Ос
 
 ## 9. Backlog с зависимостями
 
-Статус всех задач ниже — **TODO**, это план, не отчёт о реализации. `S`≈10–20мин, `M`≈20–40мин, `L`≈40–60мин agent execution; часть задач перекрывается, оценки не гарантии.
+Ниже исходный список задач; актуальный статус A вынесен в [status-a.md](status-a.md), готовность B/C и общей приёмки фиксируется их исполнителями. `S`≈10–20мин, `M`≈20–40мин, `L`≈40–60мин agent execution; часть задач перекрывается, оценки не гарантии.
 
 | ID | Owner | Задача | Depends | Size | Done |
 |---|---|---|---|---|---|
@@ -149,7 +151,7 @@ A владеет pyproject/lock/Docker/CI, shared samples и common config. Ос
 | C05 | C | Demo script и manual UI acceptance | C03,C04 | S | 5min storyline + offline backup |
 | A06 | A | Integration/CI/README/release | all P0 | M | Fresh clone + acceptance + exact release SHA |
 
-Не создавать отдельную GitHub issue на каждый tiny function. Достаточно трёх исполнительных задач с этим checklist и маленьких PR на checkpoints.
+Не создавать отдельную GitHub issue на каждый tiny function. Достаточно трёх исполнительных задач с этим checklist и небольших commits в main на checkpoints.
 
 ## 10. Риски и заранее выбранные решения
 
@@ -159,7 +161,7 @@ A владеет pyproject/lock/Docker/CI, shared samples и common config. Ос
 | Нет точных stockouts/customer IDs/lead times | Synthetic fixture + real quality flags; не объявлять эти входы наблюдаемыми |
 | One-off spike перепутан с ростом | Recurrence/robust size и uncertainty; uncertain/suspected видимы, override позже |
 | Ошибка join SKU/UOM или duplicate monthly data | String keys, reconciliation counts, range/source refs, failing test для metre/coil |
-| Сломаны общий lock/schema | Только A merges эти файлы; sample/contract tests на каждом boundary change |
+| Сломаны общий lock/schema | Только A меняет и интегрирует эти файлы; sample/contract tests на каждом boundary change |
 | Backend не успевает UI | C использует общий sample provider, но release обязан переключиться на live HTTP |
 | Полный импорт медленный | Import один раз → immutable snapshot/Parquet; ограниченная real preview scope; per-run только расчёт |
 | Budget невозможен или MOQ превышает cap | Explicit infeasible/deferred result; не округлять до недопустимой партии |
