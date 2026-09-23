@@ -128,6 +128,8 @@ def test_complete_zero_sales_scope_is_retained(tmp_path):
     assert set(series) == {"covered", "known-zero"}
     assert len(series["known-zero"]["daily"]) == 90
     assert {day["mean"] for day in series["known-zero"]["daily"]} == {0.0}
+    assert series["known-zero"]["classification_policy"] == "regular_only"
+    assert not any(issue["code"] == "ALL_DEMAND_UNCERTAIN" for issue in series["known-zero"]["warnings"])
     zero_rows = [row for row in corrected_rows(artifact) if row["sku_id"] == "known-zero"]
     assert len(zero_rows) == 90
     assert {row["observed_regular"] for row in zero_rows} == {Decimal(0)}
@@ -236,6 +238,85 @@ def test_seasonality_with_future_evidence_is_neutral_at_replay_origin(tmp_path):
     _, artifact = forecast(manifest, mapping)
     assert all(day["seasonal_delta"] == 0 and day["mean"] == 10 for day in artifact["series"][0]["daily"])
     assert any(issue["code"] == "SEASONALITY_NOT_POINT_IN_TIME" for issue in artifact["series"][0]["warnings"])
+
+
+def test_seasonality_certified_for_one_sku_does_not_change_its_category_peer(tmp_path):
+    manifest, mapping = fixture_inputs(tmp_path, ("scoped", "unscoped"))
+    mapping["assumptions"] = [{
+        "field": "seasonality", "provenance": "observed", "reason": "Evidence covers only scoped SKU",
+        "scope_ids": ["scoped"], "value": {"category_id": "audit", "verified": True,
+        "source": "invented-scoped-evidence", "evidence_end": "2026-03-01T00:00:00+00:00",
+        "factors": {str(month): 2 if month == 4 else 1 for month in range(1, 13)}},
+    }]
+    _, artifact = forecast(manifest, mapping)
+    series = {item["sku_id"]: item for item in artifact["series"]}
+    assert series["scoped"]["daily"][0]["mean"] == 20
+    assert series["scoped"]["daily"][0]["seasonal_delta"] == 10
+    assert series["unscoped"]["daily"][0]["mean"] == 10
+    assert all(day["seasonal_delta"] == 0 for day in series["unscoped"]["daily"])
+
+
+def test_classification_policy_reflects_pending_events_in_each_series(tmp_path):
+    manifest, mapping = fixture_inputs(tmp_path, ("reviewed", "pending", "partial", "regular"))
+    for event in manifest["sources"][1]["rows"]:
+        if event["event_id"] in {"reviewed-70", "pending-70", "partial-60"}:
+            event["quantity_base"] = "1000"
+        elif event["event_id"] == "partial-70":
+            event["quantity_base"] = "10000"
+    _, artifact = forecast(manifest, mapping, review_overrides=[{
+        "event_ids": ["reviewed-70", "partial-70"], "label": "project",
+        "reason": "Buyer reviewed exactly these two events",
+    }])
+    series = {item["sku_id"]: item for item in artifact["series"]}
+    assert series["reviewed"]["classification_policy"] == "review_confirmed"
+    assert series["reviewed"]["uncertain_total"] == 0
+    assert series["pending"]["classification_policy"] == "robust_suspected_exclusion"
+    assert series["pending"]["uncertain_total"] == 1000
+    assert series["partial"]["classification_policy"] == "robust_suspected_exclusion"
+    assert series["partial"]["uncertain_total"] == 1000
+    assert series["partial"]["project_total"] == 10000
+    assert series["regular"]["classification_policy"] == "regular_only"
+
+
+def test_all_uncertain_sales_cannot_be_planned_as_certain_zero_demand(tmp_path):
+    manifest, mapping = fixture_inputs(tmp_path)
+    manifest["sources"][1]["rows"] = manifest["sources"][1]["rows"][-2:]
+    snapshot, artifact = forecast(manifest, mapping)
+    series = artifact["series"][0]
+    assert snapshot["quality"]["capabilities"]["can_plan"]
+    assert series["uncertain_total"] == 20
+    assert series["observed_regular_total"] == 0
+    assert any(issue["code"] == "ALL_DEMAND_UNCERTAIN" and issue["severity"] == "blocking"
+               for issue in series["warnings"])
+    for capability in ("can_plan", "can_approve", "can_export"):
+        assert not artifact["quality"]["capabilities"][capability]
+
+    reviewed = build_forecast_payload(snapshot, request(review_overrides=[{
+        "event_ids": [event["event_id"] for event in manifest["sources"][1]["rows"]],
+        "label": "regular", "reason": "Buyer confirmed both are ordinary sales",
+    }]))
+    assert reviewed["quality"]["capabilities"]["can_plan"]
+    assert reviewed["series"][0]["classification_policy"] == "review_confirmed"
+    assert reviewed["series"][0]["observed_regular_total"] == 20
+    assert reviewed["series"][0]["uncertain_total"] == 0
+    assert reviewed["series"][0]["daily"][0]["mean"] > 0
+    assert not any(issue["code"] == "ALL_DEMAND_UNCERTAIN"
+                   for issue in reviewed["series"][0]["warnings"])
+
+
+def test_all_uncertain_scope_does_not_disable_the_usable_subset(tmp_path):
+    manifest, mapping = fixture_inputs(tmp_path, ("covered", "uncertain"))
+    for master in manifest["sources"][0]["rows"]:
+        if master["sku_id"] == "uncertain":
+            master["category_id"] = "no-comparable-category-reference"
+    manifest["sources"][1]["rows"] = [event for event in manifest["sources"][1]["rows"]
+                                      if event["sku_id"] == "covered" or event["event_id"] in {"uncertain-88", "uncertain-89"}]
+    _, artifact = forecast(manifest, mapping)
+    series = {item["sku_id"]: item for item in artifact["series"]}
+    assert artifact["quality"]["capabilities"]["can_plan"]
+    assert any(issue["code"] == "ALL_DEMAND_UNCERTAIN" and issue["severity"] == "blocking"
+               for issue in series["uncertain"]["warnings"])
+    assert not any(issue["severity"] == "blocking" for issue in series["covered"]["warnings"])
 
 
 def test_synthetic_source_provenance_survives_to_forecast(tmp_path):

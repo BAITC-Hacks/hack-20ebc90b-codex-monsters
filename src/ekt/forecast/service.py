@@ -17,7 +17,7 @@ from .baseline import forecast_daily
 from .classification import classify_events
 from .recovery import recover_daily
 
-MODEL_VERSION = "robust-daily-v1.1"
+MODEL_VERSION = "robust-daily-v1.2"
 
 
 def _timestamp(value):
@@ -84,6 +84,10 @@ def _covered_window(snapshot, sku, warehouse, end):
 def _seasonality(snapshot, category, as_of, warnings, sku):
     for assumption, value in _assumptions(snapshot, "seasonality"):
         if value.get("category_id") != category:
+            continue
+        if any(scope and sku not in scope for scope in (
+            assumption.get("scope_ids"), value.get("sku_ids"),
+        )):
             continue
         config = dict(value)
         config.setdefault("provenance", assumption.get("provenance"))
@@ -267,6 +271,15 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
         if not history:
             all_issues.append(_issue("NO_DEMAND_HISTORY", "No covered demand history for this scope.", [sku], "blocking"))
             continue
+        if any(Decimal(str(event["uncertain_qty"])) > 0 for event in scoped_events) and not any(
+            Decimal(str(event["regular_qty"])) > 0 for event in scoped_events
+        ):
+            warnings.append(_issue(
+                "ALL_DEMAND_UNCERTAIN",
+                "All positive unconfirmed demand is excluded from the regular estimate. "
+                "A zero forecast does not establish zero demand; buyer classification review is required before planning.",
+                [sku], "blocking",
+            ))
         seasonal = _seasonality(snapshot, master.get("category_id"), as_of, warnings, sku)
         model = forecast_daily(history, horizons, category_id=master.get("category_id"),
                                growth_overrides=request.get("growth_overrides") or [], seasonality=seasonal)
@@ -295,6 +308,12 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
             values = [float(row[k]) for k in ("baseline_mean", "seasonal_delta", "growth_delta", "mean")]
             if not all(math.isfinite(v) for v in values) or values[-1] < 0 or abs(sum(values[:3])-values[-1]) > 1e-8:
                 raise_domain("INVALID_FORECAST", "Forecast decomposition is invalid", [sku])
+        if any(event["review_status"] == "pending" for event in scoped_events):
+            classification_policy = "robust_suspected_exclusion"
+        elif any(event["review_status"] == "confirmed" for event in scoped_events):
+            classification_policy = "review_confirmed"
+        else:
+            classification_policy = "regular_only"
         series.append({"sku_id": sku, "warehouse_id": warehouse, "base_uom": master["base_uom"],
                        "daily": model["daily"],
                        "uncertainty": {"method": "iid_residual_normal", "daily_residual_std": model["daily_residual_std"],
@@ -303,7 +322,7 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
                        "observed_regular_total": summary["observed_regular_total"],
                        "estimated_lost_total": summary.get("estimated_lost_total") or Decimal(0),
                        "project_total": summary["project_total"], "uncertain_total": summary["uncertain_total"],
-                       "classification_policy": "review_confirmed" if request.get("review_overrides") else "robust_suspected_exclusion",
+                       "classification_policy": classification_policy,
                        "warnings": warnings})
         all_issues.extend(warnings)
     quality = dict(snapshot.get("quality") or {})
@@ -321,7 +340,7 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
     usable_series = [s for s in series if s["sku_id"] not in blocking_skus]
     if not usable_series:
         capabilities.update(can_plan=False, can_approve=False, can_export=False)
-        capabilities["reasons"].append("Forecast contains missing/conditional demand coverage; inspect per-SKU warnings.")
+        capabilities["reasons"].append("Forecast has no usable series; inspect per-SKU blocking warnings.")
     quality["capabilities"] = capabilities
     # run_id is coordinator identity, not a model input: sliders/runs reuse content.
     content_request = {k: v for k, v in request.items() if k != "run_id"}

@@ -4,6 +4,8 @@ from decimal import Decimal
 import pytest
 
 from ekt.forecast.classification import classify_events
+from ekt.forecast.baseline import forecast_daily
+from ekt.forecast.recovery import recover_daily
 
 
 def event(day, quantity=10, **extra):
@@ -89,6 +91,101 @@ def test_many_distinct_same_day_large_lines_still_count_as_one_occurrence():
     rows += [event(1000, 1000 + index, event_id=f"split-{index}") for index in range(100)]
     result = classify_events(rows)
     assert all(row["label"] == "suspected_project" for row in result[-100:])
+
+
+def test_document_line_splitting_preserves_allocations_recovery_and_forecast():
+    regular = [event(day) for day in range(56)]
+    single = classify_events(regular + [event(55, 1000, event_id="large", doc_id="large-order")])
+    split = classify_events(regular + [event(55, 10, event_id=f"large-{index}", doc_id="large-order")
+                                       for index in range(100)])
+    for allocation in ("observed_qty", "regular_qty", "project_qty", "uncertain_qty"):
+        assert sum(row[allocation] for row in split) == sum(row[allocation] for row in single)
+    assert all(row["label"] == "suspected_project" for row in split[-100:])
+    assert all("document_lines_aggregated" in row["reason_codes"] for row in split[-100:])
+    assert len({row["event_id"] for row in split}) == 156
+    first = date(2026, 1, 1)
+    origin = first + timedelta(days=56)
+    single_history, _ = recover_daily(single, [], first, origin)
+    split_history, _ = recover_daily(split, [], first, origin)
+    assert single_history == split_history
+    horizon = [origin + timedelta(days=index) for index in range(90)]
+    single_forecast = forecast_daily(single_history, horizon)
+    assert forecast_daily(split_history, horizon) == single_forecast
+    assert single_forecast["daily"][0]["mean"] == 10
+    assert single_forecast["daily_residual_std"] == 0
+
+
+def test_repeated_large_split_documents_stay_regular_on_distinct_dates():
+    regular = [event(day) for day in range(56)]
+    # The same document ID can occur on different dates; those occurrences must
+    # remain distinct size observations and establish recurrence.
+    large = [event(day, 10, event_id=f"large-{day}-{index}", doc_id="repeated-order")
+             for day in (7, 21, 35) for index in range(100)]
+    classified = classify_events(regular + large)
+    assert all(row["label"] == "regular" for row in classified[-300:])
+    assert all("recurrent_large_demand_or_level_shift" in row["reason_codes"] for row in classified[-300:])
+    assert sum(row["regular_qty"] for row in classified) == 3560
+
+
+def test_document_grouping_keeps_sku_and_warehouse_scopes_separate():
+    scopes = [("00123", "almaty"), ("other", "almaty"), ("00123", "astana")]
+    regular = [event(day, event_id=f"{sku}-{warehouse}-{day}", sku_id=sku, warehouse_id=warehouse)
+               for sku, warehouse in scopes for day in range(20)]
+    large = [event(25, 500, event_id=f"large-{index}", doc_id="shared-document") for index in range(2)]
+    controls = [event(25, event_id=f"control-{index}", doc_id="shared-document", sku_id=sku, warehouse_id=warehouse)
+                for index, (sku, warehouse) in enumerate(scopes[1:])]
+    result = {row["event_id"]: row for row in classify_events(regular + large + controls)}
+    assert result["large-0"]["label"] == result["large-1"]["label"] == "suspected_project"
+    assert result["control-0"]["label"] == result["control-1"]["label"] == "regular"
+    assert "document_lines_aggregated" not in result["control-0"]["reason_codes"]
+    assert "document_lines_aggregated" not in result["control-1"]["reason_codes"]
+
+
+def test_missing_document_identity_does_not_merge_independent_rows():
+    source = [event(day) for day in range(56)] + [
+        event(55, 10, event_id=f"independent-{index}", doc_id=None) for index in range(100)
+    ]
+    result = classify_events(source)
+    assert all(row["label"] == "regular" for row in result)
+    assert not any("document_lines_aggregated" in row["reason_codes"] for row in result)
+
+
+def test_document_returns_and_row_overrides_keep_signed_exact_allocations():
+    regular = [event(day) for day in range(56)]
+    split = [event(55, 100, event_id=f"large-{index}", doc_id="large-order") for index in range(10)]
+    movements = [
+        event(55, -50, event_id="return", doc_id="large-order", demand_effect="decrease"),
+        event(55, -10, event_id="project-return", doc_id="large-order", demand_effect="decrease"),
+        event(55, 999, event_id="transfer", doc_id="large-order", demand_effect="none"),
+    ]
+    overrides = [
+        {"event_ids": ["large-0"], "label": "regular", "reason": "Only this line is regular"},
+        {"event_ids": ["large-1", "project-return"], "label": "project", "reason": "Confirmed project lines"},
+    ]
+    rows = classify_events(regular + split + movements, overrides)
+    result = {row["event_id"]: row for row in rows}
+    assert result["large-0"]["regular_qty"] == 100
+    assert result["large-1"]["project_qty"] == 100
+    assert result["project-return"]["project_qty"] == -10
+    assert result["return"]["regular_qty"] == -50
+    assert result["transfer"]["observed_qty"] == 0
+    assert all(result[f"large-{index}"]["label"] == "suspected_project" for index in range(2, 10))
+    assert sum(row["regular_qty"] for row in rows) == 610
+    assert sum(row["project_qty"] for row in rows) == 90
+    assert sum(row["uncertain_qty"] for row in rows) == 800
+    for row in rows:
+        assert row["regular_qty"] + row["project_qty"] + row["uncertain_qty"] == row["observed_qty"]
+
+
+def test_document_grouping_and_recurrence_share_the_utc_calendar():
+    regular = [event(day) for day in range(56)]
+    split = [
+        event(55, 500, event_id="offset-line", doc_id="large-order", event_at="2026-02-26T01:00:00+05:00"),
+        event(55, 500, event_id="utc-line", doc_id="large-order", event_at="2026-02-25T22:00:00Z"),
+    ]
+    result = classify_events(regular + split)
+    assert all(row["label"] == "suspected_project" for row in result[-2:])
+    assert all("document_lines_aggregated" in row["reason_codes"] for row in result[-2:])
 
 
 @pytest.mark.parametrize("quantity", ["NaN", "Infinity", "-Infinity"])
