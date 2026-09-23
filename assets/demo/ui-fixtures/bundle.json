@@ -1,0 +1,2025 @@
+{
+  "schema_version": "1.0",
+  "notice": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии.",
+  "seed": 42,
+  "sources": {
+    "items": [
+      {
+        "source_id": "demo-source",
+        "name": "Синтетический учебный набор (заранее подготовленные ответы)",
+        "kind": "synthetic_fixture",
+        "mode": "synthetic_demo",
+        "as_of": "2026-09-01T00:00:00+00:00",
+        "import_state": "registered",
+        "row_count": 241,
+        "sku_count": 3,
+        "mapping_version": "demo-mapping-v1",
+        "provenance": "synthetic"
+      }
+    ]
+  },
+  "snapshot": {
+    "schema_version": "1.0",
+    "snapshot_id": "demo-snapshot",
+    "mapping_version": "demo-mapping-v1",
+    "manifest_hash": "synthetic-ui-sample-v1",
+    "mode": "synthetic_demo",
+    "as_of": "2026-09-01T00:00:00+00:00",
+    "created_at": "2026-09-01T00:00:00+00:00",
+    "source_refs": [
+      {
+        "source_id": "demo-source",
+        "checksum": "synthetic-source-v1",
+        "kind": "synthetic_fixture"
+      }
+    ],
+    "tables": {
+      "sku_master": {
+        "uri": "fixture:sku_master",
+        "format": "parquet",
+        "row_count": 3,
+        "checksum": "synthetic-sku_master"
+      },
+      "sales_events": {
+        "uri": "fixture:sales_events",
+        "format": "parquet",
+        "row_count": 220,
+        "checksum": "synthetic-sales_events"
+      },
+      "inventory_snapshots": {
+        "uri": "fixture:inventory_snapshots",
+        "format": "parquet",
+        "row_count": 3,
+        "checksum": "synthetic-inventory_snapshots"
+      },
+      "stockout_intervals": {
+        "uri": "fixture:stockout_intervals",
+        "format": "parquet",
+        "row_count": 1,
+        "checksum": "synthetic-stockout_intervals"
+      },
+      "pipeline_lines": {
+        "uri": "fixture:pipeline_lines",
+        "format": "parquet",
+        "row_count": 3,
+        "checksum": "synthetic-pipeline_lines"
+      },
+      "supplier_terms": {
+        "uri": "fixture:supplier_terms",
+        "format": "parquet",
+        "row_count": 3,
+        "checksum": "synthetic-supplier_terms"
+      }
+    },
+    "quality": {
+      "status": "ready",
+      "accepted_rows": 240,
+      "rejected_rows": 1,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": true,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      }
+    },
+    "assumptions": [
+      {
+        "field": "all_fields",
+        "value": "synthetic_ui_fixture",
+        "provenance": "synthetic",
+        "reason": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии.",
+        "scope_ids": [
+          "demo-snapshot"
+        ]
+      }
+    ]
+  },
+  "snapshot_job": {
+    "id": "demo-snapshot-job",
+    "status": "succeeded",
+    "stage": "precomputed_sample",
+    "progress": 1.0,
+    "result_ref": "demo-snapshot",
+    "created_at": "2026-09-01T00:00:00+00:00",
+    "updated_at": "2026-09-01T00:00:00+00:00"
+  },
+  "run": {
+    "id": "demo-run",
+    "status": "succeeded",
+    "stage": "precomputed_sample",
+    "progress": 1.0,
+    "result_ref": "demo-run",
+    "created_at": "2026-09-01T00:00:00+00:00",
+    "updated_at": "2026-09-01T00:00:00+00:00",
+    "proposal_ids": [
+      "demo-proposal-tools",
+      "demo-proposal-cable"
+    ],
+    "quality": {
+      "status": "ready",
+      "accepted_rows": 240,
+      "rejected_rows": 1,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": true,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      }
+    },
+    "forecast_id": "demo-forecast",
+    "snapshot_id": "demo-snapshot",
+    "mode": "synthetic_demo",
+    "as_of": "2026-09-01T00:00:00+00:00",
+    "seed": 42,
+    "policy": {
+      "service_metric": "cycle_service",
+      "service_target": 0.95,
+      "review_days": 7,
+      "budget_cap": null,
+      "currency": "KZT",
+      "max_cover_days": null,
+      "lead_time_delay_days": 0,
+      "policy_version": "demo-policy-v1"
+    },
+    "demo_notice": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+  },
+  "proposals": [
+    {
+      "proposal_id": "demo-proposal-tools",
+      "version": 1,
+      "status": "draft",
+      "content_hash": "calculated-by-mock-on-load",
+      "run_id": "demo-run",
+      "snapshot_id": "demo-snapshot",
+      "mode": "synthetic_demo",
+      "supplier_id": "demo-supplier-tools",
+      "warehouse_id": "demo-warehouse",
+      "as_of": "2026-09-01T00:00:00+00:00",
+      "currency": "KZT",
+      "total_cost": "10800.00",
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": true,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      },
+      "warnings": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "lines": [
+        {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "base_uom": "шт",
+          "purchase_uom": "шт",
+          "recommended_base_qty": "108",
+          "recommended_purchase_qty": "108",
+          "selected_purchase_qty": "108",
+          "selected_base_qty": "108",
+          "moq_purchase": "108",
+          "pack_multiple_purchase": "12",
+          "conversion": "1",
+          "rop": "160",
+          "safety_stock": "30",
+          "raw_need": "100",
+          "unit_cost": "100.00",
+          "line_cost": "10800.00",
+          "urgency": "soon",
+          "projected_stockout_date": "2026-09-10",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "10",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Поступление до даты потребности."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "8",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            }
+          ]
+        }
+      ],
+      "excluded_lines": [
+        {
+          "sku_id": "INVALID-MOQ",
+          "reasons": [
+            {
+              "code": "MISSING_MOQ",
+              "severity": "blocking",
+              "scope_ids": [
+                "INVALID-MOQ"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "MOQ неизвестен. Строка исключена; 1 не подставлено."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "proposal_id": "demo-proposal-cable",
+      "version": 1,
+      "status": "draft",
+      "content_hash": "calculated-by-mock-on-load",
+      "run_id": "demo-run",
+      "snapshot_id": "demo-snapshot",
+      "mode": "synthetic_demo",
+      "supplier_id": "demo-supplier-cable",
+      "warehouse_id": "demo-warehouse",
+      "as_of": "2026-09-01T00:00:00+00:00",
+      "currency": "KZT",
+      "total_cost": "3000.00",
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": true,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      },
+      "warnings": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "lines": [
+        {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "3",
+          "selected_base_qty": "300",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "3000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        }
+      ],
+      "excluded_lines": []
+    }
+  ],
+  "edit_variants": {
+    "demo-proposal-tools": {
+      "0": {
+        "line": {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "base_uom": "шт",
+          "purchase_uom": "шт",
+          "recommended_base_qty": "108",
+          "recommended_purchase_qty": "108",
+          "selected_purchase_qty": "0",
+          "selected_base_qty": "0",
+          "moq_purchase": "108",
+          "pack_multiple_purchase": "12",
+          "conversion": "1",
+          "rop": "160",
+          "safety_stock": "30",
+          "raw_need": "100",
+          "unit_cost": "100.00",
+          "line_cost": "0.00",
+          "urgency": "soon",
+          "projected_stockout_date": "2026-09-10",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "10",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Поступление до даты потребности."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "8",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "-108",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            }
+          ]
+        },
+        "total_cost": "0.00"
+      },
+      "108": {
+        "line": {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "base_uom": "шт",
+          "purchase_uom": "шт",
+          "recommended_base_qty": "108",
+          "recommended_purchase_qty": "108",
+          "selected_purchase_qty": "108",
+          "selected_base_qty": "108",
+          "moq_purchase": "108",
+          "pack_multiple_purchase": "12",
+          "conversion": "1",
+          "rop": "160",
+          "safety_stock": "30",
+          "raw_need": "100",
+          "unit_cost": "100.00",
+          "line_cost": "10800.00",
+          "urgency": "soon",
+          "projected_stockout_date": "2026-09-10",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "10",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Поступление до даты потребности."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "8",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            }
+          ]
+        },
+        "total_cost": "10800.00"
+      },
+      "120": {
+        "line": {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "base_uom": "шт",
+          "purchase_uom": "шт",
+          "recommended_base_qty": "108",
+          "recommended_purchase_qty": "108",
+          "selected_purchase_qty": "120",
+          "selected_base_qty": "120",
+          "moq_purchase": "108",
+          "pack_multiple_purchase": "12",
+          "conversion": "1",
+          "rop": "160",
+          "safety_stock": "30",
+          "raw_need": "100",
+          "unit_cost": "100.00",
+          "line_cost": "12000.00",
+          "urgency": "soon",
+          "projected_stockout_date": "2026-09-10",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "10",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Поступление до даты потребности."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "8",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "12",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            }
+          ]
+        },
+        "total_cost": "12000.00"
+      },
+      "132": {
+        "line": {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "base_uom": "шт",
+          "purchase_uom": "шт",
+          "recommended_base_qty": "108",
+          "recommended_purchase_qty": "108",
+          "selected_purchase_qty": "132",
+          "selected_base_qty": "132",
+          "moq_purchase": "108",
+          "pack_multiple_purchase": "12",
+          "conversion": "1",
+          "rop": "160",
+          "safety_stock": "30",
+          "raw_need": "100",
+          "unit_cost": "100.00",
+          "line_cost": "13200.00",
+          "urgency": "soon",
+          "projected_stockout_date": "2026-09-10",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "10",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Поступление до даты потребности."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "8",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "24",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            }
+          ]
+        },
+        "total_cost": "13200.00"
+      }
+    },
+    "demo-proposal-cable": {
+      "0": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "0",
+          "selected_base_qty": "0",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "0.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "-300",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "0.00"
+      },
+      "2": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "2",
+          "selected_base_qty": "200",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "2000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "-100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "2000.00"
+      },
+      "3": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "3",
+          "selected_base_qty": "300",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "3000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "3000.00"
+      },
+      "4": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "4",
+          "selected_base_qty": "400",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "4000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "100",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "4000.00"
+      },
+      "5": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "5",
+          "selected_base_qty": "500",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "5000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "5000.00"
+      },
+      "6": {
+        "line": {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "base_uom": "м",
+          "purchase_uom": "бухта",
+          "recommended_base_qty": "300",
+          "recommended_purchase_qty": "3",
+          "selected_purchase_qty": "6",
+          "selected_base_qty": "600",
+          "moq_purchase": "2",
+          "pack_multiple_purchase": "1",
+          "conversion": "100",
+          "rop": "290",
+          "safety_stock": "40",
+          "raw_need": "215",
+          "unit_cost": "10.00",
+          "line_cost": "6000.00",
+          "urgency": "critical",
+          "projected_stockout_date": "2026-09-08",
+          "explanation": [
+            {
+              "code": "baseline_demand",
+              "label": "Базовая потребность",
+              "delta_base_qty": "200",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Восстановленный спрос включён один раз; синтетический пример."
+            },
+            {
+              "code": "seasonality_delta",
+              "label": "Сезонная прибавка",
+              "delta_base_qty": "30",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "growth_delta",
+              "label": "Прибавка роста",
+              "delta_base_qty": "20",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "safety_stock",
+              "label": "Страховой запас",
+              "delta_base_qty": "40",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Целевой cycle service 95%; не измеренный fill rate."
+            },
+            {
+              "code": "free_stock",
+              "label": "Свободный остаток",
+              "delta_base_qty": "-50",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "timely_pipeline",
+              "label": "Своевременное поступление",
+              "delta_base_qty": "-25",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Позднее поступление 100 м с ETA 2026-09-20 не уменьшает эту потребность."
+            },
+            {
+              "code": "moq_adjustment",
+              "label": "MOQ",
+              "delta_base_qty": "0",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "pack_adjustment",
+              "label": "Кратность",
+              "delta_base_qty": "85",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": null
+            },
+            {
+              "code": "manual_override_delta",
+              "label": "Ручная правка покупателя",
+              "delta_base_qty": "300",
+              "source_refs": [
+                "fixture:ui-samples-v1"
+              ],
+              "note": "Причина правки"
+            }
+          ],
+          "warnings": [
+            {
+              "code": "PRECOMPUTED_UI_SAMPLE",
+              "severity": "info",
+              "scope_ids": [],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+            },
+            {
+              "code": "LATE_PIPELINE",
+              "severity": "warning",
+              "scope_ids": [
+                "CABLE-001"
+              ],
+              "source_ref": "fixture:ui-samples-v1",
+              "message": "100 м ожидаются 2026-09-20, после прогнозируемого дефицита 2026-09-08."
+            }
+          ]
+        },
+        "total_cost": "6000.00"
+      }
+    }
+  },
+  "quality_variants": {
+    "ready": {
+      "status": "ready",
+      "accepted_rows": 240,
+      "rejected_rows": 1,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": true,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      }
+    },
+    "degraded": {
+      "status": "degraded",
+      "accepted_rows": 240,
+      "rejected_rows": 1,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "MISSING_COST",
+          "severity": "warning",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Цены отсутствуют: стоимость и бюджет недоступны; null не означает 0."
+        },
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": false,
+        "budget_available": false,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Все числа синтетические; доступна документная классификация, идентификаторов клиентов нет."
+        ]
+      }
+    },
+    "blocked": {
+      "status": "blocked",
+      "accepted_rows": 240,
+      "rejected_rows": 1,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "MISSING_REQUIRED_TERMS",
+          "severity": "blocking",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Нет подтверждённых актуальных остатков и условий MOQ/упаковки."
+        },
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ],
+      "capabilities": {
+        "can_plan": false,
+        "can_approve": false,
+        "can_export": false,
+        "budget_available": false,
+        "customer_detection_available": false,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Обязательные условия отсутствуют. Это синтетический пример блокировки."
+        ]
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "demo-scenario-service",
+      "status": "succeeded",
+      "stage": "precomputed_sample",
+      "progress": 1.0,
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "updated_at": "2026-09-01T00:00:00+00:00",
+      "base_run_id": "demo-run",
+      "snapshot_id": "demo-snapshot",
+      "mode": "synthetic_demo",
+      "as_of": "2026-09-01T00:00:00+00:00",
+      "seed": 42,
+      "overrides": {
+        "service_target": 0.99,
+        "lead_time_delay_days": 0
+      },
+      "changed_lines": [
+        {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "purchase_uom": "шт",
+          "base_uom": "шт",
+          "base_purchase_qty": "108",
+          "scenario_purchase_qty": "120",
+          "base_safety_stock": "30",
+          "scenario_safety_stock": "48",
+          "base_raw_need": "100",
+          "scenario_raw_need": "118",
+          "base_line_cost": "10800.00",
+          "scenario_line_cost": "12000.00"
+        },
+        {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "purchase_uom": "бухта",
+          "base_uom": "м",
+          "base_purchase_qty": "3",
+          "scenario_purchase_qty": "3",
+          "base_safety_stock": "40",
+          "scenario_safety_stock": "70",
+          "base_raw_need": "215",
+          "scenario_raw_need": "245",
+          "base_line_cost": "3000.00",
+          "scenario_line_cost": "3000.00"
+        }
+      ],
+      "summary": {
+        "changed_line_count": 2,
+        "base_total_cost": "13800.00",
+        "scenario_total_cost": "15000.00",
+        "currency": "KZT",
+        "service_metric": "cycle_service",
+        "base_service_target": 0.95,
+        "scenario_service_target": 0.99,
+        "base_lead_time_delay_days": 0,
+        "scenario_lead_time_delay_days": 0
+      },
+      "assumptions": [
+        "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии.",
+        "Фиксированный seed 42; базовый снимок и предложения не меняются.",
+        "Потерянная маржа, экономия и достигнутый сервис не оценены."
+      ],
+      "warnings": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ]
+    },
+    {
+      "id": "demo-scenario-delay",
+      "status": "succeeded",
+      "stage": "precomputed_sample",
+      "progress": 1.0,
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "updated_at": "2026-09-01T00:00:00+00:00",
+      "base_run_id": "demo-run",
+      "snapshot_id": "demo-snapshot",
+      "mode": "synthetic_demo",
+      "as_of": "2026-09-01T00:00:00+00:00",
+      "seed": 42,
+      "overrides": {
+        "service_target": 0.95,
+        "lead_time_delay_days": 7
+      },
+      "changed_lines": [
+        {
+          "line_id": "line-tools",
+          "sku_id": "TOOL-001",
+          "name": "Инструмент учебный — golden 108",
+          "purchase_uom": "шт",
+          "base_uom": "шт",
+          "base_purchase_qty": "108",
+          "scenario_purchase_qty": "144",
+          "base_safety_stock": "30",
+          "scenario_safety_stock": "40",
+          "base_raw_need": "100",
+          "scenario_raw_need": "135",
+          "base_line_cost": "10800.00",
+          "scenario_line_cost": "14400.00"
+        },
+        {
+          "line_id": "line-cable",
+          "sku_id": "CABLE-001",
+          "name": "Кабель учебный — 100 м в бухте",
+          "purchase_uom": "бухта",
+          "base_uom": "м",
+          "base_purchase_qty": "3",
+          "scenario_purchase_qty": "4",
+          "base_safety_stock": "40",
+          "scenario_safety_stock": "55",
+          "base_raw_need": "215",
+          "scenario_raw_need": "315",
+          "base_line_cost": "3000.00",
+          "scenario_line_cost": "4000.00"
+        }
+      ],
+      "summary": {
+        "changed_line_count": 2,
+        "base_total_cost": "13800.00",
+        "scenario_total_cost": "18400.00",
+        "currency": "KZT",
+        "service_metric": "cycle_service",
+        "base_service_target": 0.95,
+        "scenario_service_target": 0.95,
+        "base_lead_time_delay_days": 0,
+        "scenario_lead_time_delay_days": 7
+      },
+      "assumptions": [
+        "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии.",
+        "Фиксированный seed 42; базовый снимок и предложения не меняются.",
+        "Потерянная маржа, экономия и достигнутый сервис не оценены."
+      ],
+      "warnings": [
+        {
+          "code": "PRECOMPUTED_UI_SAMPLE",
+          "severity": "info",
+          "scope_ids": [],
+          "source_ref": "fixture:ui-samples-v1",
+          "message": "Демо: имитация API. Синтетические заранее подготовленные ответы; расчёт модели не выполняется. Состояние хранится только в памяти сессии."
+        }
+      ]
+    }
+  ],
+  "demand_events": {
+    "items": [
+      {
+        "event_id": "demo-event-regular",
+        "sku_id": "TOOL-001",
+        "warehouse_id": "demo-warehouse",
+        "observed_qty": "10",
+        "regular_qty": "10",
+        "project_qty": "0",
+        "uncertain_qty": "0",
+        "label": "regular",
+        "reason_codes": [
+          "REGULAR_DOCUMENT"
+        ],
+        "confidence": 0.88,
+        "review_status": "pending"
+      },
+      {
+        "event_id": "demo-event-project",
+        "sku_id": "TOOL-001",
+        "warehouse_id": "demo-warehouse",
+        "observed_qty": "1000",
+        "regular_qty": "0",
+        "project_qty": "0",
+        "uncertain_qty": "1000",
+        "label": "suspected_project",
+        "reason_codes": [
+          "ONE_OFF_100X_SPIKE",
+          "NO_CUSTOMER_IDENTIFIER"
+        ],
+        "confidence": 0.92,
+        "review_status": "pending"
+      },
+      {
+        "event_id": "demo-event-cable",
+        "sku_id": "CABLE-001",
+        "warehouse_id": "demo-warehouse",
+        "observed_qty": "25",
+        "regular_qty": "25",
+        "project_qty": "0",
+        "uncertain_qty": "0",
+        "label": "regular",
+        "reason_codes": [
+          "REGULAR_DOCUMENT"
+        ],
+        "confidence": 0.8,
+        "review_status": "pending"
+      }
+    ],
+    "diagnostics": {
+      "classification_policy": "robust_suspected_exclusion",
+      "customer_detection_available": false,
+      "notice": "Всплеск сохранён как uncertain и исключён из регулярного спроса по политике; это не подтверждённый проект. Идентификаторов клиентов нет.",
+      "series": [
+        {
+          "sku_id": "TOOL-001",
+          "base_uom": "шт",
+          "observed_regular_total": "100",
+          "estimated_lost_total": "10",
+          "project_total": "0",
+          "uncertain_total": "1000",
+          "recovery_method": "synthetic precomputed stockout sample",
+          "uncertainty_note": "Некалиброванный пример; не измерение на реальных данных."
+        },
+        {
+          "sku_id": "CABLE-001",
+          "base_uom": "м",
+          "observed_regular_total": "180",
+          "estimated_lost_total": "20",
+          "project_total": "0",
+          "uncertain_total": "0",
+          "recovery_method": "synthetic precomputed stockout sample",
+          "uncertainty_note": "Некалиброванный пример; не измерение на реальных данных."
+        }
+      ]
+    }
+  }
+}
