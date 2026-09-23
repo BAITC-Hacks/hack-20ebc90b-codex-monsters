@@ -4,7 +4,7 @@
 
 **Все работают в `main`, без новых веток, worktree и PR.** Предыдущие branch-инструкции отменены пользователем. Для запуска backend используйте [корневой README](../../README.md); B импортирует `ekt.contracts`, C использует `/docs`, `/openapi.json` и HTTP `/v1/*`.
 
-1. Всем прочитать [общий план](master-plan.md) и [контракты](contracts.md).
+1. Всем прочитать [общие критерии хакатона и правила отчёта](hackathon-criteria.md), [общий план](master-plan.md) и [контракты](contracts.md).
 2. Раздать каждому один документ и скопировать его последний раздел «Стартовый prompt» в свой Codex:
    - **A, пользовательский Codex:** [backend, расчёт заказа, интеграция](participant-a-platform-integration.md).
    - **B, участник2:** [данные и прогноз](participant-b-data-forecast.md).
