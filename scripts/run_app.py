@@ -18,9 +18,43 @@ import sys
 import time
 from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
+from zipfile import ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def source_directory(explicit: str | None, state: Path) -> Path | None:
+    """Use an explicit local directory or the supplied repository workbooks."""
+    if explicit:
+        path = Path(explicit).expanduser().resolve()
+        if not path.is_dir():
+            raise ValueError("Каталог исходных данных не найден")
+        return path
+    local = ROOT / "data" / "sources"
+    if local.is_dir():
+        return local
+    archives = [ROOT / name for name in ("IEK.zip", "Systeme electric.zip")]
+    if not all(path.is_file() for path in archives):
+        return None
+    target = state / "source-files"
+    for archive in archives:
+        with ZipFile(archive) as zipped:
+            for member in zipped.infolist():
+                path = Path(member.filename)
+                if member.is_dir() or path.suffix.lower() != ".xlsx":
+                    continue
+                if path.is_absolute() or ".." in path.parts or path.parts[0] not in {"IEK", "Systeme electric"}:
+                    raise ValueError("В архиве указан недопустимый путь")
+                if member.file_size > 100_000_000:
+                    raise ValueError("Файл в архиве превышает допустимый размер")
+                destination = (target / path).resolve()
+                if not destination.is_relative_to(target.resolve()):
+                    raise ValueError("Недопустимый путь распаковки")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if not destination.exists():
+                    destination.write_bytes(zipped.read(member))
+    return target
 
 
 def port_number(value: str) -> int:
@@ -37,7 +71,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1", help="UI bind address (default: 127.0.0.1)")
     parser.add_argument(
-        "--port", type=port_number,
+        "--port", "--ui-port", type=port_number,
         default=os.environ.get("UI_PORT") or os.environ.get("PORT") or "8501",
         help="UI port (default: UI_PORT, PORT, or 8501)",
     )
@@ -49,6 +83,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--startup-timeout", type=float, default=60,
         help="seconds to wait for each service to become healthy (default: 60)",
     )
+    parser.add_argument("--state-dir", type=Path, help="Каталог сохранённых планов и заказов")
+    parser.add_argument("--source-root", default=os.environ.get("EKT_SOURCE_ROOT"),
+                        help="Каталог с папками IEK и Systeme electric")
     args = parser.parse_args(argv)
     if not 0 < args.startup_timeout < float("inf"):
         parser.error("--startup-timeout must be a positive finite number")
@@ -135,10 +172,14 @@ def stop_children(children: list[tuple[str, subprocess.Popen]]) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     env = os.environ.copy()
-    env["EKT_DATA_DIR"] = env.get("EKT_DATA_DIR") or str(ROOT / "var")
+    state = (args.state_dir or Path(env.get("EKT_DATA_DIR") or ROOT / "var")).expanduser().resolve()
+    env["EKT_DATA_DIR"] = str(state)
     env["BUYER_UI_MODE"] = "http"
     env["BUYER_API_URL"] = f"http://127.0.0.1:{args.api_port}"
     env["PYTHONUNBUFFERED"] = "1"
+    # Persisted workspace chooses the latest work, never old development IDs.
+    for key in ("BUYER_SNAPSHOT_ID", "BUYER_RUN_ID"):
+        env.pop(key, None)
     children: list[tuple[str, subprocess.Popen]] = []
     stop_signal = None
 
@@ -163,6 +204,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         require_free_port("127.0.0.1", args.api_port)
         require_free_port(args.host, args.port)
+        sources = source_directory(args.source_root, state)
+        if sources is not None:
+            env["EKT_SOURCE_ROOT"] = str(sources)
         start("API", [
             "uvicorn", "ekt.api.app:app", "--host", "127.0.0.1", "--port", str(args.api_port),
         ])
@@ -175,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
             "streamlit", "run", "apps/buyer_ui/app.py", "--server.address", args.host,
             "--server.port", str(args.port), "--server.headless", "true",
             "--server.fileWatcherType", "none", "--browser.gatherUsageStats", "false",
+            "--client.toolbarMode", "minimal",
         ])
         local_host = {"0.0.0.0": "127.0.0.1", "::": "::1"}.get(args.host, args.host)
         local_host = f"[{local_host}]" if ":" in local_host else local_host
@@ -189,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
             check_children(children)
             time.sleep(0.2)
         return 128 + stop_signal
-    except (OSError, RuntimeError) as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         print(f"Startup/runtime error: {exc}", file=sys.stderr, flush=True)
         return 1
     finally:

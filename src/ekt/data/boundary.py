@@ -83,17 +83,16 @@ def snapshot_inputs(source_manifest: Any, mapping_config: Any) -> tuple[dict, di
                     raise DataError("SOURCE_NOT_AVAILABLE", f"Registered source {item['source_id']} is unavailable")
                 if checksum(path) != reference["checksum"]:
                     raise DataError("SOURCE_CHECKSUM_MISMATCH", f"Registered source {item['source_id']} changed since selection")
-    if mapping["version"] == "systeme-preview-v1" and refs and not source.get("sources"):
+    if mapping["version"] in {"systeme-preview-v1", "iek-preview-v1"} and refs and not source.get("sources"):
         if public_mapping.get("columns") or mappings or source_options:
             raise DataError("PRESET_CONFIGURATION_CONFLICT", "Named registry preset cannot be combined with custom field/source mappings")
-        from .presets import systeme_preview_manifest
+        from .presets import iek_preview_manifest, systeme_preview_manifest
         from .sources import timestamp
         requested = {item["source_id"]: item for item in sources}
-        if {"S07", "S08", "S12"} - set(requested) or set(requested) - {"S07", "S08", "S12", "S01"}:
-            raise DataError("INVALID_PRESET_SOURCES", "Systeme preset requires registered S07, S08, S12 and optional S01 only")
+        preset = iek_preview_manifest if mapping["version"] == "iek-preview-v1" else systeme_preview_manifest
         if not output_root:
             raise DataError("MISSING_OUTPUT_ROOT", "Registry preset requires an explicit backend artifact output directory")
-        preset_source, preset_mapping = systeme_preview_manifest(
+        preset_source, preset_mapping = preset(
             None, output_root, timestamp(source.get("as_of"), "as_of"),
             sku_limit=options.get("sku_limit", 20),
             source_paths={key: item["path"] for key, item in requested.items()},
@@ -101,7 +100,7 @@ def snapshot_inputs(source_manifest: Any, mapping_config: Any) -> tuple[dict, di
         preset_source["mode"] = source.get("mode", "real_preview")
         for item in preset_source["sources"]:
             if not item.get("path"):
-                continue  # S08-master is derived only from the registered S08.
+                continue  # Supplier master is derived only from its registered sales source.
             reference = refs.get(item["source_id"])
             if reference is None or Path(item["path"]).resolve() != Path(reference["local_ref"]).expanduser().resolve():
                 raise DataError("UNREGISTERED_PRESET_SOURCE", "Preset attempted to consume an unregistered file")

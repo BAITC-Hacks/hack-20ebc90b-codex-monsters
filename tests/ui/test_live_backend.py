@@ -212,7 +212,7 @@ class LiveBackendTests(unittest.TestCase):
         csv_stream = io.StringIO(exported.data.decode("utf-8-sig"))
         self.assertEqual(next(csv.reader(csv_stream)), ["ДЕМОНСТРАЦИЯ — НЕ ЗАКАЗ ПОСТАВЩИКУ"])
         rows = list(csv.DictReader(csv_stream))
-        self.assertEqual(len(rows), len(edited["lines"]))
+        self.assertEqual(len(rows), sum(Decimal(line["selected_purchase_qty"]) > 0 for line in edited["lines"]))
         self.assertTrue(all(row["mode"] == "synthetic_demo" and row["status"] == "approved" for row in rows))
         self.assertTrue(all(row["proposal_id"] == proposal_id and int(row["version"]) == edited["version"] for row in rows))
         self.server.restart()
@@ -253,6 +253,69 @@ class LiveBackendTests(unittest.TestCase):
             self.assertEqual(self.client.get_proposal(proposal_id), original)
 
     @unittest.skipUnless(AppTest is not None, "Streamlit is needed for live UI transition checks")
+    def test_normal_buyer_wizard_then_browser_reload_restores_approved_order(self):
+        with patch.dict(os.environ, {
+            "BUYER_UI_MODE": "http", "BUYER_DEVELOPER_MODE": "0", "BUYER_API_URL": self.server.url,
+            "BUYER_API_TOKEN": "", "BUYER_SNAPSHOT_ID": "", "BUYER_RUN_ID": "",
+        }):
+            app = AppTest.from_file(str(APP), default_timeout=20).run()
+
+            def clean():
+                self.assertFalse(list(app.exception), [str(error.value) for error in app.exception])
+                self.assertFalse(list(app.code))
+                self.assertFalse(list(app.json))
+
+            def click(label):
+                next(button for button in app.button if button.label == label).click().run()
+                clean()
+
+            click("Перейти к данным")
+            self.assertEqual(app.selectbox(key="buyer_source_group").options, ["Демонстрационный набор"])
+            self.assertFalse(any(item.label in {"Адрес API", "ID поставщика", "Данные на дату и время", "Номер набора данных"} for item in app.text_input))
+            click("Подготовить план закупки")
+            deadline = time.monotonic() + 20
+            while "buyer_flow" in app.session_state and time.monotonic() < deadline:
+                time.sleep(0.05)
+                app.run()
+                clean()
+            self.assertNotIn("buyer_flow", app.session_state)
+            run_id = app.session_state["run_id"]
+            self.assertEqual(app.radio(key="workspace_page").value, "Заказы")
+            proposal_id = app.session_state["proposal_id"]
+            click("Утвердить и подготовить CSV")
+            self.assertEqual(self.client.get_proposal(proposal_id)["status"], "approved")
+            self.assertIn("order_download", app.session_state)
+            # No configured IDs or reused session state: persistent workspace owns recovery.
+            fresh = AppTest.from_file(str(APP), default_timeout=20).run()
+            self.assertFalse(list(fresh.exception), [str(error.value) for error in fresh.exception])
+            self.assertEqual(fresh.session_state["run_id"], run_id)
+            self.assertEqual(fresh.session_state["snapshot_id"], app.session_state["snapshot_id"])
+            self.assertTrue(any(button.label == "Подготовить CSV" and not button.disabled for button in fresh.button))
+            app.radio(key="workspace_page").set_value("Что, если…").run()
+            clean()
+            click("Сравнить варианты")
+            scenario_id = app.session_state["_secondary_scenario"]["id"]
+            completed(lambda: self.client.get_scenario(scenario_id))
+            click("Обновить результат")
+            click("Применить условия к новому плану")
+            deadline = time.monotonic() + 20
+            while "buyer_flow" in app.session_state and time.monotonic() < deadline:
+                time.sleep(0.05)
+                app.run()
+                clean()
+            self.assertNotIn("buyer_flow", app.session_state)
+            new_run_id = app.session_state["run_id"]
+            self.assertNotEqual(new_run_id, run_id)
+            self.assertEqual(self.client.get_planning_run(new_run_id)["policy"]["service_target"], 0.99)
+            self.assertEqual(self.client.get_proposal(proposal_id)["status"], "approved")
+            for item in self.client.list_proposals(run_id=new_run_id)["items"]:
+                self.assertEqual(item["status"], "draft")
+            app.selectbox(key="saved_run_picker").set_value(run_id).run()
+            click("Открыть выбранный план")
+            self.assertEqual(app.session_state["run_id"], run_id)
+            self.assertTrue(any(button.label == "Подготовить CSV" for button in app.button))
+
+    @unittest.skipUnless(AppTest is not None, "Streamlit is needed for live UI transition checks")
     def test_streamlit_creates_snapshot_run_then_edits_approves_and_downloads_via_http(self):
         import streamlit as st
 
@@ -262,6 +325,7 @@ class LiveBackendTests(unittest.TestCase):
         # The bootstrap must rerun before it exposes supplier tables.
         st.set_option("client.disableDataExport", False)
         with patch.dict(os.environ, {
+            "BUYER_DEVELOPER_MODE": "1",
             "BUYER_UI_MODE": "http", "BUYER_API_URL": self.server.url,
             "BUYER_API_TOKEN": "", "BUYER_SNAPSHOT_ID": "", "BUYER_RUN_ID": "",
             "BUYER_MOCK_QUALITY": "ready", "BUYER_SEED": "42",

@@ -14,6 +14,7 @@ from apps.buyer_ui.formatting import show_api_error  # noqa: E402
 from apps.buyer_ui.presentation import brand, page_intro  # noqa: E402
 from apps.buyer_ui.secondary_views import render_data, render_scenarios  # noqa: E402
 from apps.buyer_ui.views import render_orders  # noqa: E402
+from apps.buyer_ui.workspace import render_saved_work, restore_workspace  # noqa: E402
 
 
 def _connection_locked():
@@ -52,7 +53,10 @@ def _remember_drafts():
 
 
 def main():
-    st.set_page_config(page_title="Электрокомплект · Закупки", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="Электрокомплект · Закупки", page_icon="🛒", layout="wide", initial_sidebar_state="collapsed")
+    developer = os.getenv("BUYER_DEVELOPER_MODE", "").lower() in ("1", "true", "yes")
+    st.set_option("client.toolbarMode", "developer" if developer else "minimal")
+    st.set_option("client.showErrorDetails", "full" if developer else "none")
     if not st.get_option("client.disableDataExport"):
         st.set_option("client.disableDataExport", True)
         st.rerun()
@@ -68,58 +72,61 @@ def main():
             st.markdown("**2. План закупки.** Выберите поставщика, проверьте товары и объяснения. При необходимости измените количество с причиной.")
             st.markdown("**3. CSV.** Утвердите проверенную версию и скачайте файл. После правки потребуется новое утверждение.")
             st.caption("В разделе «Сравнение вариантов» можно проверить другие условия поставки. Ваш заказ при этом не изменится.")
-            st.caption("Демонстрационная учётная запись. Отправки поставщикам нет.")
+            st.caption("Утверждение сохраняет решение закупщика. Файл можно передать поставщику после проверки; приложение ничего не отправляет.")
+    locked = _connection_locked()
+    default_mode = "http" if locked else os.getenv("BUYER_UI_MODE", "http")
+    if default_mode not in ("mock", "http"):
+        st.error("Не удалось настроить приложение. Обратитесь к ответственному за систему.")
+        st.stop()
+    mode = default_mode
+    base_url = os.getenv("BUYER_API_URL", "http://127.0.0.1:8000")
+    quality = os.getenv("BUYER_MOCK_QUALITY", "ready")
     with settings.popover("Настройки", use_container_width=True):
-        st.write("**Подключение**")
-        locked = _connection_locked()
-        default_mode = "http" if locked else os.getenv("BUYER_UI_MODE", "mock")
-        if default_mode not in ("mock", "http"):
-            st.error("BUYER_UI_MODE должен быть mock или http.")
-            st.stop()
-        mode = st.selectbox("Режим интерфейса", ("mock", "http"), index=0 if default_mode == "mock" else 1,
-                            format_func=lambda value: "Демо: имитация API" if value == "mock" else "HTTP API",
-                            key="connection_mode", disabled=locked)
         configured_url = os.getenv("BUYER_API_URL", "http://127.0.0.1:8000")
-        base_url = st.text_input("Адрес API", value=configured_url,
-                                 key="connection_url", disabled=locked or mode == "mock" or bool(os.getenv("BUYER_API_TOKEN")))
-        if locked:
-            # Public sessions cannot choose a server-side request destination or mock mode.
-            # Enforce the server settings even if widget state was changed externally.
-            mode, base_url = "http", configured_url
-        default_quality = os.getenv("BUYER_MOCK_QUALITY", "ready")
-        if default_quality not in ("ready", "degraded", "blocked"):
-            st.error("BUYER_MOCK_QUALITY должен быть ready, degraded или blocked.")
+        if quality not in ("ready", "degraded", "blocked"):
+            st.error("Не удалось настроить демонстрационные данные. Обратитесь к ответственному за систему.")
             st.stop()
-        quality = st.selectbox("Набор демо-данных", ("ready", "degraded", "blocked"),
-                               index=("ready", "degraded", "blocked").index(default_quality),
-                               format_func=lambda v: {"ready": "Готовые", "degraded": "С ограничениями", "blocked": "Расчёт заблокирован"}[v],
-                               key="mock_quality", disabled=mode != "mock")
+        if developer:
+            mode = st.selectbox("Режим интерфейса", ("mock", "http"), index=0 if default_mode == "mock" else 1,
+                                format_func=lambda value: "Демо: имитация API" if value == "mock" else "HTTP API",
+                                key="connection_mode", disabled=locked)
+            base_url = st.text_input("Адрес API", value=configured_url, key="connection_url",
+                                     disabled=locked or mode == "mock" or bool(os.getenv("BUYER_API_TOKEN")))
+            quality = st.selectbox("Набор демо-данных", ("ready", "degraded", "blocked"),
+                                   index=("ready", "degraded", "blocked").index(quality), key="mock_quality",
+                                   disabled=mode != "mock")
+        if locked:
+            # Hosted sessions must retain the server destination even if widget state changes.
+            mode, base_url = "http", configured_url
+        st.caption("Учётная запись закупщика для локальной работы. Решения и утверждения сохраняются на сервере. Отправки поставщикам нет."
+                   if mode == "http" else "Изолированный демонстрационный режим. Данные не сохраняются на сервере.")
+
         connection = (mode, base_url, quality)
         if st.session_state.get("connection") != connection:
             try:
                 _clear_context(mode)
                 st.session_state["client"] = MockClient(quality=quality) if mode == "mock" else _http_client(base_url)
-            except (ValueError, OSError) as error:
-                st.error(f"Не удалось настроить подключение: {error}")
+            except (ValueError, OSError):
+                st.error("Не удалось настроить подключение. Обратитесь к ответственному за систему.")
                 st.stop()
             st.session_state["connection"] = connection
         st.session_state["client_mode"] = mode
         client = st.session_state["client"]
         if st.button("Проверить подключение", key="health_check"):
             try:
-                health = client.health()
-                if health.get("status") == "ok":
+                if client.health().get("status") == "ok":
                     st.success("Подключение работает")
+                    st.session_state.pop("buyer_workspace", None)
                 else:
-                    st.warning("Сервер не подтвердил готовность.")
+                    st.warning("Система пока не готова к работе.")
             except ApiError as error:
                 show_api_error(error)
-        st.caption("Полномочия задаёт сервер. Отправки поставщикам нет.")
-        st.caption("Снимок: " + (st.session_state.get("snapshot_id") or "не выбран"))
-        st.caption("Расчёт: " + (st.session_state.get("run_id") or "не выбран"))
-        if mode == "mock" and st.button("Сбросить локальное демо", key="reset_demo"):
+        if developer and mode == "mock" and st.button("Сбросить локальное демо", key="reset_demo"):
             _clear_context(mode)
             st.rerun()
+    if not developer:
+        restore_workspace(client)
+        render_saved_work(client)
     if mode == "mock":
         st.caption("Демо: имитация API. Синтетические данные и заранее подготовленные результаты.")
     pending_page = st.session_state.pop("pending_page", None)

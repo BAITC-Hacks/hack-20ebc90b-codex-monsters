@@ -8,3 +8,5 @@ font = "sans-serif"
 
 [client]
 disableDataExport = true
+toolbarMode = "minimal"
+showErrorDetails = "none"

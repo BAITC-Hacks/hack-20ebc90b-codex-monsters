@@ -134,6 +134,7 @@ class HttpClientTests(unittest.TestCase):
             ("/snapshots", self.client.create_snapshot, {"source_ids": ["s1"], "mapping_version": "m1", "mode": "synthetic_demo", "as_of": "2026-09-01T00:00:00+00:00"}),
             ("/planning-runs", self.client.create_planning_run, {"snapshot_id": "s1", "policy": {"service_metric": "cycle_service", "service_target": 0.95}, "idempotency_key": "run-key"}),
             ("/scenarios", self.client.create_scenario, {"base_run_id": "r1", "overrides": {"budget_cap": "1234.50"}, "seed": 42, "idempotency_key": "scenario-key"}),
+            ("/snapshots/s1/buyer-inputs", lambda value: self.client.save_buyer_inputs("s1", value), {"items": [{"sku_id": "A", "free_base": "0.000000000001"}], "reason": "Сверено", "accept_history_estimate": True, "idempotency_key": "buyer-1"}),
             ("/proposals/p1/approve", lambda value: self.client.approve_proposal("p1", value), {"expected_version": 2, "content_hash": "exact-hash"}),
         ]
         for route, call, payload in cases:
@@ -147,6 +148,7 @@ class HttpClientTests(unittest.TestCase):
     def test_read_job_snapshot_run_scenario_and_event_routes(self):
         cases = [
             ("/sources", self.client.list_sources),
+            ("/snapshots/s1/buyer-inputs", lambda: self.client.get_buyer_inputs("s1")),
             ("/jobs/j1", lambda: self.client.get_job("j1")),
             ("/snapshots/s1", lambda: self.client.get_snapshot("s1")),
             ("/planning-runs/r1", lambda: self.client.get_planning_run("r1")),

@@ -17,11 +17,12 @@ def refresh_review(client, reviewed, capability=None):
     return latest
 
 
-def approve_reviewed(client, reviewed):
+def approve_reviewed(client, reviewed, *, acknowledge_assumptions=False):
     latest = refresh_review(client, reviewed, "can_approve")
-    return client.approve_proposal(latest["proposal_id"], {
-        "expected_version": latest["version"], "content_hash": latest["content_hash"],
-    })
+    payload = {"expected_version": latest["version"], "content_hash": latest["content_hash"]}
+    if acknowledge_assumptions:
+        payload["acknowledge_assumptions"] = True
+    return client.approve_proposal(latest["proposal_id"], payload)
 
 
 def export_reviewed(client, reviewed, request_key):

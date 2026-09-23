@@ -1,6 +1,6 @@
 """Deterministic periodic-review replenishment with an auditable quantity ledger.
 
-The horizon begins on the calendar day following ``as_of``. Demand quantiles are
+The horizon begins on the UTC calendar day following ``as_of``. Demand quantiles are
 computed for aggregate lead-time/protection-period demand, never summed daily
 quantiles. Normal uncertainty explicitly assumes independent daily residuals.
 Budget allocation is a feasible urgency-prioritized heuristic, not an optimum.
@@ -8,7 +8,7 @@ Budget allocation is a feasible urgency-prioritized heuristic, not an optimum.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_FLOOR
 from fractions import Fraction
 from hashlib import sha256
@@ -188,12 +188,24 @@ def _forecast_values(series: Any, start: date, horizon: int, lead: int, target: 
     return daily, (sums(horizon, 0), sums(horizon, 1), sums(horizon, 2)), ss, lead_mean + lead_ss
 
 
+def _moment(value: Any, as_of: datetime) -> datetime:
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=as_of.tzinfo)
+
+
 def _latest(rows: list[dict], field: str, as_of: datetime) -> dict | None:
-    def moment(value):
-        parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=as_of.tzinfo)
-    valid = [row for row in rows if row.get(field) is not None and moment(row[field]) <= as_of]
-    return max(valid, key=lambda row: moment(row[field])) if valid else None
+    valid = [row for row in rows if row.get(field) is not None and _moment(row[field], as_of) <= as_of]
+    if not valid:
+        return None
+    latest_at = max(_moment(row[field], as_of) for row in valid)
+    latest = [row for row in valid if _moment(row[field], as_of) == latest_at]
+    # Equal timestamps do not provide a revision order. Picking the first row
+    # would make a purchase depend on the incidental order of imported records.
+    # An exact duplicate remains harmless, including equivalent timezone forms.
+    values = [{key: value for key, value in row.items() if key != field} for row in latest]
+    if any(value != values[0] for value in values[1:]):
+        raise ValueError("Conflicting records share the latest effective timestamp")
+    return latest[0]
 
 
 def build_proposals(
@@ -205,9 +217,12 @@ def build_proposals(
     horizon and an unsupported global budget fail the run, preventing partial
     recommendations masquerading as a complete scenario.
     """
-    if forecast.snapshot_id != snapshot.snapshot_id or forecast.as_of != snapshot.as_of:
-        raise _error("SNAPSHOT_MISMATCH", "Forecast must refer to the exact planning snapshot")
-    day0 = snapshot.as_of.date()
+    if (forecast.snapshot_id != snapshot.snapshot_id or forecast.as_of != snapshot.as_of
+            or forecast.mode != snapshot.mode):
+        raise _error("SNAPSHOT_MISMATCH", "Forecast must refer to the exact planning snapshot and data mode")
+    # Forecast days use UTC; preserve that calendar even when the snapshot's
+    # timestamp was submitted with a different timezone offset.
+    day0 = snapshot.as_of.astimezone(timezone.utc).date()
     start = day0 + timedelta(days=1)
     masters = defaultdict(list)
     stocks = defaultdict(list)
@@ -219,7 +234,13 @@ def build_proposals(
         stocks[row["sku_id"], row["warehouse_id"]].append(row)
     for row in _table(snapshot, "supplier_terms"):
         terms[row["supplier_id"], row["sku_id"], row["warehouse_id"]].append(row)
+    pipeline_ids = set()
     for row in _table(snapshot, "pipeline_lines"):
+        # A repeated purchase-order line must not be netted twice: that would
+        # lower a buyer's recommendation while the physical receipt is unchanged.
+        if row["po_line_id"] in pipeline_ids:
+            raise _error("DUPLICATE_PIPELINE", "Purchase-order line appears more than once", [row["sku_id"]])
+        pipeline_ids.add(row["po_line_id"])
         pipes[row["sku_id"], row["warehouse_id"]].append(row)
     exclusions = []
     candidates: list[tuple[tuple, ProposalLine, Decimal, bool]] = []
@@ -240,8 +261,15 @@ def build_proposals(
         supplier = master.get("supplier_id")
         if not supplier:
             reasons.append(_issue("MISSING_SUPPLIER", "Supplier mapping is required", sku, "blocking"))
-        stock = _latest(stocks.get((sku, warehouse), []), "as_of", snapshot.as_of)
-        term = _latest(terms.get((supplier, sku, warehouse), []), "valid_at", snapshot.as_of)
+        stock = term = None
+        try:
+            stock = _latest(stocks.get((sku, warehouse), []), "as_of", snapshot.as_of)
+        except ValueError as exc:
+            reasons.append(_issue("AMBIGUOUS_STOCK", str(exc), sku, "blocking"))
+        try:
+            term = _latest(terms.get((supplier, sku, warehouse), []), "valid_at", snapshot.as_of)
+        except ValueError as exc:
+            reasons.append(_issue("AMBIGUOUS_TERMS", str(exc), sku, "blocking"))
         for issue in [*snapshot.quality.issues, *forecast.quality.issues]:
             if issue.severity == "blocking" and (sku in issue.scope_ids or not issue.scope_ids):
                 reasons.append(issue)
@@ -285,6 +313,11 @@ def build_proposals(
             raise _error("HORIZON_TOO_SHORT", "Forecast does not cover the requested maximum-cover horizon", [sku])
         free = _decimal(stock["free_base"])
         warnings = list(series.warnings)
+        if any(row.get("provenance") in {"synthetic", "assumed"} for row in [master, stock, term]) and snapshot.mode != "synthetic_demo":
+            warnings.append(_issue("ASSUMED_PLANNING_INPUT", "Some planning inputs are assumed or synthetic; buyer confirmation is required before approval", sku))
+        for assumption in snapshot.assumptions:
+            if not assumption.scope_ids or sku in assumption.scope_ids:
+                warnings.append(_issue("PLANNING_ASSUMPTION", f"{assumption.field}: {assumption.reason}", sku))
         uncertainty = _dict(series.uncertainty)
         if uncertainty["method"] == "iid_residual_normal":
             warnings.append(_issue("IID_NORMAL_ASSUMPTION", "Safety stock assumes independent normal daily residuals; target CSL is not measured achieved service", sku))
@@ -292,7 +325,7 @@ def build_proposals(
             warnings.append(_issue("UNCALIBRATED_SCENARIOS", "Scenario service target is unvalidated, not measured achieved service", sku))
         arrivals = defaultdict(lambda: ZERO)
         pipeline = ZERO
-        used_pipe_rows = []
+        cover_pipeline = ZERO
         for incoming in pipes.get((sku, warehouse), []):
             if incoming.get("status") not in ACTIVE_PIPELINE:
                 continue
@@ -302,15 +335,21 @@ def build_proposals(
             if incoming.get("eta_end") is None or incoming.get("eta_semantics") == "unknown":
                 warnings.append(_issue("UNKNOWN_ETA_EXCLUDED", "Open receipt with unknown ETA is excluded from usable pipeline", sku))
                 continue
-            eta_original = _date(incoming["eta_end"])
-            if eta_original <= day0:
+            eta_moment = _moment(incoming["eta_end"], snapshot.as_of)
+            if eta_moment <= snapshot.as_of:
                 warnings.append(_issue("PAST_DUE_PIPELINE_EXCLUDED", "Past-due unreceived supply requires a confirmed new ETA", sku))
                 continue
-            eta = eta_original + timedelta(days=policy.lead_time_delay_days)
+            eta_original = eta_moment.astimezone(timezone.utc).date()
+            # Future receipts later on the snapshot day are available for the
+            # first forecast day. Compare exact timestamps before bucketing.
+            eta = max(start, eta_original + timedelta(days=policy.lead_time_delay_days))
+            if policy.max_cover_days is not None and eta < start + timedelta(days=policy.max_cover_days):
+                cover_pipeline += remaining
             if eta < start + timedelta(days=horizon):
                 arrivals[eta] += remaining
                 pipeline += remaining
-                used_pipe_rows.append(incoming)
+                if incoming.get("provenance") in {"synthetic", "assumed"} and snapshot.mode != "synthetic_demo":
+                    warnings.append(_issue("ASSUMED_PIPELINE", "Receipt quantity or ETA is assumed; verify before placing an order", sku))
         stockout = None
         balance = free
         for offset in range(horizon):
@@ -345,7 +384,7 @@ def build_proposals(
         ledger.append(_component("quantity_quantum_adjustment", "Точность складского учёта", candidate - after_pack))
         if policy.max_cover_days is not None:
             max_demand = sum((daily[start + timedelta(days=i)][3] for i in range(policy.max_cover_days)), ZERO)
-            cap = max(ZERO, max_demand - free - pipeline)
+            cap = max(ZERO, max_demand - free - cover_pipeline)
             capped = min(candidate, _floor(cap, increment))
             if capped < moq * conversion:
                 capped = ZERO
@@ -356,6 +395,8 @@ def build_proposals(
         cost = None if term.get("cost_per_base") is None else _decimal(term["cost_per_base"])
         if cost is not None and cost < 0:
             raise _error("INVALID_COST", "Landed cost must be nonnegative", [sku])
+        if cost is None or not term.get("currency"):
+            warnings.append(_issue("UNKNOWN_ORDER_COST", "Confirmed unit cost and currency are required to calculate order value and enforce a budget", sku))
         for entry in ledger:
             entry.source_refs = ([forecast.forecast_id] if entry.code in {
                 "baseline_demand", "seasonal_delta", "growth_delta", "safety_stock"
@@ -371,9 +412,9 @@ def build_proposals(
             urgency=urgency, projected_stockout_date=stockout, explanation=ledger, warnings=warnings,
         )
         revalidate_line_quantity(line, line.selected_purchase_qty)
-        synthetic = snapshot.mode == "synthetic_demo" or forecast.mode == "synthetic_demo" or any(
-            row.get("provenance") in {"synthetic", "assumed"} for row in [master, stock, term, *used_pipe_rows]
-        ) or bool(snapshot.assumptions)
+        # Assumptions do not change the dataset's identity. Buyer preparation
+        # can enable local approval while preserving real-preview provenance.
+        synthetic = snapshot.mode == "synthetic_demo"
         candidates.append(((supplier, warehouse, term.get("currency")), line, increment, synthetic))
     # SKU/warehouse inventory omitted by the forecast remains visible as an exclusion.
     for sku, warehouse in stocks:
@@ -420,15 +461,23 @@ def build_proposals(
     for (key, synthetic), lines in grouped.items():
         supplier, warehouse, currency = key
         cap_source = snapshot.quality.capabilities
+        positive_lines = any(line.selected_base_qty > 0 for line in lines)
         line_ready = bool(lines) and not any(w.severity == "blocking" for line in lines for w in line.warnings)
-        approve = line_ready and cap_source.can_approve
+        approve = line_ready and positive_lines and cap_source.can_approve
+        reasons = list(cap_source.reasons)
+        if not lines:
+            reasons.append("No eligible SKU lines")
+        elif not positive_lines:
+            reasons.append("Нет товаров к заказу: пополнение не требуется или отложено")
+        if not synthetic and not cap_source.can_approve:
+            reasons.append("Заполните условия закупки и подтвердите данные")
         capabilities = Capabilities(
             can_plan=bool(lines), can_approve=approve,
-            can_export=approve and cap_source.can_export,
+            can_export=False,
             budget_available=budget_available,
             customer_detection_available=cap_source.customer_detection_available,
             observed_stockouts_available=cap_source.observed_stockouts_available,
-            reasons=list(cap_source.reasons) + ([] if lines else ["No eligible SKU lines"]),
+            reasons=reasons,
         )
         warnings = []
         if policy.budget_cap is not None:

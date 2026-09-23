@@ -23,7 +23,7 @@ class HostedConnectionTests(unittest.TestCase):
     def setUp(self):
         self.environment = patch.dict(os.environ, {
             "BUYER_LOCK_CONNECTION": "true", "BUYER_API_URL": API_URL,
-            "BUYER_API_TOKEN": "", "BUYER_UI_MODE": "mock",
+            "BUYER_API_TOKEN": "", "BUYER_UI_MODE": "mock", "BUYER_DEVELOPER_MODE": "true",
             "BUYER_SNAPSHOT_ID": "", "BUYER_RUN_ID": "", "BUYER_MOCK_QUALITY": "ready",
         })
         self.environment.start()
@@ -71,3 +71,14 @@ class HostedConnectionTests(unittest.TestCase):
         self.assertFalse(app.selectbox(key="connection_mode").disabled)
         self.assertEqual(app.session_state["client_mode"], "mock")
         self.assertTrue(any("Демо: имитация API" in str(item.value) for item in app.caption))
+
+    def test_normal_hosted_workspace_hides_technical_controls_and_keeps_lock(self):
+        with patch.dict(os.environ, {"BUYER_DEVELOPER_MODE": "0"}):
+            app = AppTest.from_file(str(APP), default_timeout=15).run()
+            app.session_state["connection_mode"] = "mock"
+            app.session_state["connection_url"] = "http://169.254.169.254"
+            app.run()
+        self.assertFalse(list(app.exception))
+        self.assertFalse(any(item.label == "Адрес API" for item in app.text_input))
+        self.assertEqual(app.session_state["client_mode"], "http")
+        self.assertEqual(app.session_state["client"].base_url, API_URL + "/v1")

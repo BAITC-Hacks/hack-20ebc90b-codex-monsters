@@ -1,12 +1,13 @@
 """Supplier proposal review, edit, approval and backend-generated CSV."""
 from decimal import Decimal, InvalidOperation
 from html import escape
+import os
 from uuid import uuid4
 
 import streamlit as st
 
 from .client import ApiError
-from .formatting import format_date, format_decimal, format_money, format_uom, show_api_error, show_issues
+from .formatting import format_date, format_decimal, format_money, format_uom, human_reasons, show_api_error, show_issues
 from .presentation import section_heading, status_badge
 from .workflow import approve_reviewed, export_reviewed
 
@@ -34,7 +35,7 @@ def _context(proposal):
             text += ", временный прогноз (модель спроса ещё не подключена)"
         st.caption(text + ". CSV не является заказом поставщику.")
     else:
-        st.caption("Предпросмотр реальных данных. Учитывайте ограничения источников.")
+        st.caption("Реальные данные компании. Проверьте остатки, условия поставки и допущения расчёта.")
 
 
 def _summary(proposal):
@@ -43,7 +44,7 @@ def _summary(proposal):
     status_badge("Утверждён" if approved else "Ожидает вашей проверки", approved)
     st.metric("Сумма к закупке", format_money(proposal.get("total_cost"), proposal.get("currency")))
     st.caption("Заказ утверждён. Можно подготовить файл для скачивания." if approved else
-               "Проверьте товары перед утверждением. Количество можно изменить ниже.")
+               "Проверьте товары перед утверждением. Количество можно изменить в карточке товара.")
 
 
 def _summary_details(proposal):
@@ -51,7 +52,7 @@ def _summary_details(proposal):
     critical = sum(line.get("urgency") == "critical" for line in lines)
     rows = (("Поставщик", proposal.get("supplier_id", "—")),
             ("Склад", proposal.get("warehouse_id", "—")),
-            ("Позиций в заказе", len(lines)),
+            ("Позиций к закупке", sum(Decimal(str(line.get("selected_purchase_qty") or "0")) > 0 for line in lines)),
             ("Критичных позиций", critical))
     st.html('<ul class="buyer-summary-list">' + ''.join(
         f'<li><span>{escape(label)}</span><strong>{escape(str(value))}</strong></li>'
@@ -85,7 +86,20 @@ def _ledger(line):
         st.caption("Значения в таблице округлены до трёх знаков.")
     else:
         st.warning("Объяснение количества не получено. Обновите заказ или обратитесь в поддержку.")
-    show_issues(line.get("warnings"))
+    methodology = {
+        "PLANNING_ASSUMPTION", "IID_NORMAL_ASSUMPTION", "UNCALIBRATED_SCENARIOS",
+        "SYNTHETIC_LOG_COMPLETENESS", "HISTORY_WINDOW", "SEASONALITY_NOT_POINT_IN_TIME",
+        "SEASONALITY_NEUTRAL_UNVERIFIED", "SEASONALITY_MISSING_MONTHS_NEUTRAL",
+        "SEASONALITY_ESTIMATED_UNVALIDATED", "GROWTH_NOT_SUSTAINED_NEUTRAL",
+        "GROWTH_INSUFFICIENT_COMPLETE_HISTORY_NEUTRAL", "SHORT_HISTORY_LOW_CONFIDENCE",
+        "UNKNOWN_HISTORY_EXCLUDED", "UNCERTAINTY_STOCKOUT_STATUS_UNKNOWN",
+    }
+    assumptions = [issue for issue in line.get("warnings", [])
+                   if issue.get("code") in methodology and issue.get("severity") != "blocking"]
+    show_issues([issue for issue in line.get("warnings", []) if issue not in assumptions])
+    if assumptions:
+        with st.expander("Допущения расчёта"):
+            show_issues(assumptions)
     with st.expander("Запас и условия закупки"):
         rows = [{"Показатель": label, "Значение": format_decimal(line.get(field), places=3), "Ед.": format_uom(uom)}
                 for field, label, uom in (
@@ -183,7 +197,7 @@ def _prepare_download(client, reviewed):
 
 def _approval_and_export(client, proposal, reviewed):
     st.divider()
-    st.caption("Демонстрационная учётная запись")
+    st.caption("Ручное утверждение закупщиком")
     caps = proposal.get("capabilities") or {}
     dirty = any(_draft_dirty(draft) for identity, draft in st.session_state.get("order_drafts", {}).items()
                 if identity.startswith(proposal["proposal_id"] + ":"))
@@ -209,12 +223,19 @@ def _approval_and_export(client, proposal, reviewed):
             except ApiError as error:
                 show_api_error(error)
     else:
+        acknowledge = False
+        if proposal.get("mode") == "real_preview":
+            acknowledge = st.checkbox("Проверил остатки, условия поставки и допущения. Подтверждаю этот заказ для локального использования.",
+                                      key=f"acknowledge:{proposal['proposal_id']}:{proposal['version']}:{proposal['content_hash']}")
         st.caption(f"Будет утверждена версия {proposal['version']}; поставщику ничего не отправляется.")
         if st.button("Утвердить и подготовить CSV", type="primary", disabled=not caps.get("can_approve", False),
                      key=f"approve:{proposal['proposal_id']}", use_container_width=True, icon=":material/check:"):
             try:
                 with st.spinner("Утверждаем проверенную версию…"):
-                    approve_reviewed(client, reviewed)
+                    if proposal.get("mode") == "real_preview" and not acknowledge:
+                        st.error("Подтвердите проверку остатков, условий поставки и допущений перед утверждением.")
+                        return
+                    approve_reviewed(client, reviewed, acknowledge_assumptions=acknowledge)
             except ApiError as error:
                 show_api_error(error)
             else:
@@ -229,7 +250,7 @@ def _approval_and_export(client, proposal, reviewed):
     if (proposal.get("status") == "approved" and not caps.get("can_export", False)) or (
             proposal.get("status") != "approved" and not caps.get("can_approve", False)):
         st.warning("Действие пока недоступно. Проверьте ограничения данных и права доступа.")
-        for reason in caps.get("reasons") or []:
+        for reason in human_reasons(caps.get("reasons"), proposal.get("warnings")):
             st.caption(reason)
 
 
@@ -264,7 +285,9 @@ def render_orders(client):
             return
         picker, more = st.columns([4, 1], vertical_alignment="bottom")
         with more.popover("Ещё", use_container_width=True):
-            supplier = st.text_input("ID поставщика", key="orders_supplier").strip()
+            supplier = ""
+            if os.getenv("BUYER_DEVELOPER_MODE", "").lower() in ("1", "true", "yes"):
+                supplier = st.text_input("ID поставщика", key="orders_supplier").strip()
             if st.button("Обновить заказ", key="orders_refresh"):
                 st.rerun()
         filter_context = (run_id, supplier)
@@ -275,7 +298,10 @@ def render_orders(client):
                                      cursor=st.session_state.get("orders_cursor"), limit=50)
         items = page.get("items") or []
         if not items:
-            st.info("Заказов по выбранным условиям нет. Проверьте фильтр поставщика и качество данных.")
+            st.info("Расчёт завершён без заказов по выбранным условиям. Проверьте исходные данные и условия закупки.")
+            if st.button("Проверить данные и условия закупки", key="orders_empty_to_data", type="primary"):
+                st.session_state["pending_page"] = "Данные"
+                st.rerun()
             if st.session_state.get("orders_cursor") and st.button("На первую страницу", key="orders_empty_first"):
                 st.session_state["orders_cursor"] = None
                 st.rerun()
@@ -310,6 +336,8 @@ def render_orders(client):
                 section_heading(None, "Товары к закупке")
                 _context(proposal)
                 _notices(proposal)
+                if proposal.get("lines") and all(Decimal(str(line.get("selected_purchase_qty") or "0")) == 0 for line in proposal["lines"]):
+                    st.info("В этом плане нет количества к закупке. Проверьте объяснения: причиной могут быть достаточный запас, ограничение бюджета или ручная правка. Пустой заказ не отправляется.")
                 search, filters = st.columns([3, 2])
                 query = search.text_input("Найти товар", placeholder="Название или артикул", key="order_search").strip().casefold()
                 urgency = filters.selectbox("Срочность", tuple(URGENCY), format_func=URGENCY.get, key="urgency_filter")

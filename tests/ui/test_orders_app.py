@@ -26,6 +26,7 @@ IDENTITY = f"{PROPOSAL}:line-tools"
 class OrdersAppTests(unittest.TestCase):
     def setUp(self):
         self.env = patch.dict(os.environ, {
+            "BUYER_DEVELOPER_MODE": "1",
             "BUYER_UI_MODE": "mock", "BUYER_MOCK_QUALITY": "ready",
             "BUYER_SNAPSHOT_ID": "demo-snapshot", "BUYER_RUN_ID": "demo-run", "BUYER_SEED": "42",
         })

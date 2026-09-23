@@ -173,9 +173,13 @@ def test_api_real_provider_replans_without_refit_and_approves_exact_csv(tmp_path
             assert exported.status_code == 200, exported.text
             rows = list(csv.reader(io.StringIO(exported.content.decode("utf-8-sig"))))
             assert rows[0] == ["ДЕМОНСТРАЦИЯ — НЕ ЗАКАЗ ПОСТАВЩИКУ"]
-            assert len(rows) == len(proposal["lines"]) + 2
+            ordered_lines = [line for line in proposal["lines"]
+                             if Decimal(line["selected_purchase_qty"]) > 0]
+            assert len(rows) == len(ordered_lines) + 2
             by_sku = {row[3]: row for row in rows[2:]}
-            for line in proposal["lines"]:
+            assert set(by_sku) == {line["sku_id"] for line in ordered_lines}
+            assert all(Decimal(row[4]) > 0 and Decimal(row[6]) > 0 for row in rows[2:])
+            for line in ordered_lines:
                 row = by_sku[line["sku_id"]]
                 assert row[0] == "synthetic_demo" and row[10] == "approved"
                 assert Decimal(row[4]) == Decimal(line["selected_purchase_qty"])

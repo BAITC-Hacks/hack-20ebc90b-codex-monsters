@@ -14,9 +14,12 @@ from ekt import __version__
 from ekt.contracts import (
     ApprovalRequest,
     ApprovalResponse,
+    BuyerInputs,
+    BuyerPreparationRequest,
     DemandEventPage,
     DomainError,
     ExportRequest,
+    EventReviewRequest,
     PlanningRunRequest,
     PlanningRunAccepted,
     PlanningRunStatus,
@@ -32,6 +35,7 @@ from ekt.contracts import (
     HealthResponse,
     SourceMetadata,
     SourcePage,
+    Workspace,
     SnapshotRequest,
 )
 from ekt.storage import (
@@ -97,6 +101,10 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
     def sources(request: Request):
         return {"items": [{key: value for key, value in source.items() if key in SourceMetadata.model_fields} for source in service(request).list_sources()["items"]]}
 
+    @application.get("/v1/workspace", response_model=Workspace)
+    def workspace(request: Request):
+        return service(request).workspace()
+
     @application.post("/v1/snapshots", status_code=202, response_model=JobAccepted)
     def create_snapshot(body: SnapshotRequest, request: Request):
         return service(request).start_snapshot(body.model_dump(mode="json"))
@@ -108,6 +116,16 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
     @application.get("/v1/snapshots/{snapshot_id}", response_model=SnapshotManifest)
     def snapshot(snapshot_id: str, request: Request):
         return public_snapshot(service(request)._require("snapshots", snapshot_id))
+
+    @application.get("/v1/snapshots/{snapshot_id}/buyer-inputs", response_model=BuyerInputs)
+    def buyer_inputs(snapshot_id: str, request: Request):
+        from .procurement import read_inputs
+        return read_inputs(service(request), snapshot_id)
+
+    @application.post("/v1/snapshots/{snapshot_id}/buyer-inputs", response_model=SnapshotManifest)
+    def prepare_purchase(snapshot_id: str, body: BuyerPreparationRequest, request: Request):
+        from .procurement import prepare
+        return prepare(service(request), snapshot_id, body.model_dump(mode="json"))
 
     @application.post("/v1/planning-runs", status_code=202, response_model=PlanningRunAccepted)
     def start_run(body: PlanningRunRequest, request: Request):
@@ -155,6 +173,10 @@ def create_app(data_dir: Path | str | None = None, *, forecast_provider=None, sn
     @application.get("/v1/planning-runs/{run_id}/demand-events", response_model=DemandEventPage)
     def demand_events(run_id: str, request: Request, label: str | None = None, limit: int = Query(50, ge=1, le=200), cursor: str | None = None):
         return service(request).demand_events(run_id, label, limit, cursor)
+
+    @application.post("/v1/planning-runs/{run_id}/review-events", response_model=PlanningRunAccepted, status_code=202)
+    def review_events(run_id: str, body: EventReviewRequest, request: Request):
+        return service(request).review_events(run_id, body.model_dump(mode="json"))
 
     return application
 

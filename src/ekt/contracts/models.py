@@ -583,6 +583,53 @@ class SnapshotRequest(Contract):
     mapping_version: ID
     mode: Mode
     as_of: AwareDatetime
+    idempotency_key: ID | None = None
+    sku_limit: int = Field(default=20, ge=1, le=10000)
+
+
+class BuyerInput(Contract):
+    sku_id: ID
+    warehouse_id: ID
+    name: str = ""
+    supplier_id: ID
+    base_uom: ID
+    purchase_uom: ID | None = None
+    base_units_per_purchase_uom: PositiveQty | None = None
+    quantity_quantum: PositiveQty | None = None
+    free_base: SignedQty | None = None
+    moq_purchase: Qty | None = None
+    pack_multiple_purchase: PositiveQty | None = None
+    lead_time_days: int | None = Field(default=None, ge=0, le=365)
+    review_days: int | None = Field(default=None, ge=1, le=365)
+    cost_per_base: Money | None = None
+    currency: ID | None = None
+    incoming_base_qty: Qty = Decimal("0")
+    incoming_eta: date | None = None
+
+
+class BuyerInputs(Contract):
+    snapshot_id: ID
+    mode: Mode
+    as_of: AwareDatetime
+    history_start: date | None = None
+    history_end: date
+    items: list[BuyerInput]
+
+
+class BuyerPreparationRequest(Contract):
+    items: list[BuyerInput] = Field(min_length=1)
+    reason: Annotated[str, Field(min_length=1)]
+    accept_history_estimate: bool
+    idempotency_key: ID
+
+    @model_validator(mode="after")
+    def valid_preparation(self):
+        if not self.reason.strip():
+            raise ValueError("Укажите основание для введённых условий")
+        scopes = [(row.sku_id, row.warehouse_id) for row in self.items]
+        if len(scopes) != len(set(scopes)):
+            raise ValueError("Товар на одном складе указан повторно")
+        return self
 
 
 class JobAccepted(Contract):
@@ -594,6 +641,19 @@ class PlanningRunRequest(Contract):
     snapshot_id: ID
     policy: PlanningPolicy
     idempotency_key: ID
+    review_overrides: list[ClassificationOverride] = Field(default_factory=list)
+
+
+class EventReviewRequest(ClassificationOverride):
+    idempotency_key: ID
+
+    @model_validator(mode="after")
+    def valid_review(self):
+        if not self.reason.strip():
+            raise ValueError("review reason must contain text")
+        if len(set(self.event_ids)) != len(self.event_ids):
+            raise ValueError("event IDs must be unique")
+        return self
 
 
 class PlanningRunAccepted(Contract):
@@ -610,6 +670,7 @@ class PlanningRunStatus(JobStatus):
     policy: PlanningPolicy | None = None
     snapshot_manifest_hash: str | None = None
     forecast_hash: str | None = None
+    review_overrides: list[ClassificationOverride] = Field(default_factory=list)
 
 
 class ProposalEdit(Contract):
@@ -632,6 +693,7 @@ class ProposalPatchRequest(Contract):
 class ApprovalRequest(Contract):
     expected_version: int = Field(ge=1)
     content_hash: ID
+    acknowledge_assumptions: bool = False
 
 
 class ApprovalResponse(Contract):
@@ -702,10 +764,24 @@ class SourceMetadata(Contract):
     import_state: Literal["registered", "importing", "ready", "failed"] = "registered"
     row_count: int | None = Field(default=None, ge=0)
     mode: Mode
+    supplier_name: str | None = None
+    dataset_id: str | None = None
+    default_as_of: AwareDatetime | None = None
+    mapping_version: str | None = None
+    available_for_import: bool = True
+    description: str | None = None
 
 
 class SourcePage(Contract):
     items: list[SourceMetadata]
+
+
+class Workspace(Contract):
+    runs: list[PlanningRunStatus]
+    snapshots: list[SnapshotManifest]
+    sources: list[SourceMetadata]
+    latest_run_id: str | None = None
+    latest_snapshot_id: str | None = None
 
 
 class HealthResponse(Contract):

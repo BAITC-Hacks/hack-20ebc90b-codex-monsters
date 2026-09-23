@@ -138,7 +138,7 @@ def test_approve_export_edit_requires_new_exact_approval(client):
     assert replay.content == exported.content
     assert replay.headers["content-disposition"] == exported.headers["content-disposition"]
     rows = list(csv.reader(io.StringIO(exported.text)))
-    assert len(rows) == len(proposal["lines"]) + 2
+    assert len(rows) == sum(Decimal(line["selected_purchase_qty"]) > 0 for line in proposal["lines"]) + 2
     assert all(row[0] == "synthetic_demo" and row[10] == "approved" for row in rows[2:])
 
     line = proposal["lines"][0]

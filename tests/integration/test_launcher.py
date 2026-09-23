@@ -174,7 +174,7 @@ class LauncherProcessesTests(unittest.TestCase):
         ui = self.service("ui")
         self.assertEqual(ui["ui_mode"], "http")
         self.assertEqual(ui["api_url"], f"http://127.0.0.1:{self.api_port}")
-        self.assertEqual(ui["data_dir"], str(self.directory / "custom-state"))
+        self.assertEqual(Path(ui["data_dir"]).resolve(), (self.directory / "custom-state").resolve())
         self.assertEqual(ui["cwd"], str(ROOT))
         self.assertTrue(ui["api_was_ready"])
         self.process.terminate()

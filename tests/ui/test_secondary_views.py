@@ -1,7 +1,9 @@
 """Critical secondary-tab transitions using explicit synthetic API responses."""
 
 from copy import deepcopy
+import os
 import unittest
+from unittest.mock import patch
 
 from apps.buyer_ui.client import ApiError
 
@@ -104,6 +106,11 @@ class JobStatusTests(unittest.TestCase):
 
 @unittest.skipUnless(AppTest is not None, "Streamlit required for UI transition tests")
 class SecondaryViewsTests(unittest.TestCase):
+    def setUp(self):
+        self.environment = patch.dict(os.environ, {"BUYER_DEVELOPER_MODE": "1"})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
     def app(self, view):
         app = AppTest.from_string(HARNESS.replace("VIEW(", view + "("), default_timeout=15).run()
         self.clean(app)

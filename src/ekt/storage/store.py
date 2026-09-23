@@ -11,10 +11,11 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import RLock
 from typing import Any, Callable, Iterator
 
 Payload = dict[str, Any]
@@ -263,6 +264,10 @@ class Store:
     def __init__(self, db_path: str | Path, busy_timeout_ms: int = 10_000):
         self.busy_timeout_ms = busy_timeout_ms
         self._anchor: sqlite3.Connection | None = None
+        # Shared-cache memory databases return SQLITE_LOCKED immediately rather
+        # than honouring busy_timeout. Serialize their operations so they retain
+        # the same transactional behaviour as the file-backed WAL store.
+        self._memory_lock = RLock() if str(db_path) == ":memory:" else None
         if str(db_path) == ":memory:":
             self.db_path = f"file:ekt-{uuid.uuid4()}?mode=memory&cache=shared"
             self._uri = True
@@ -289,31 +294,32 @@ class Store:
         return connection
 
     @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        with self._memory_lock if self._memory_lock is not None else nullcontext():
+            connection = self._connect()
+            try:
+                yield connection
+            finally:
+                connection.close()
+
+    @contextmanager
     def transaction(self) -> Iterator[StoreTransaction]:
-        connection = self._connect()
-        try:
-            connection.execute("BEGIN IMMEDIATE")
-            yield StoreTransaction(connection)
-            connection.commit()
-        except BaseException:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
+        with self._connection() as connection:
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                yield StoreTransaction(connection)
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
 
     def get_item(self, kind: str, item_id: str, version: int | None = None) -> Payload | None:
-        connection = self._connect()
-        try:
+        with self._connection() as connection:
             return StoreTransaction(connection).get_item(kind, item_id, version)
-        finally:
-            connection.close()
 
     def list_items(self, kind: str) -> list[Payload]:
-        connection = self._connect()
-        try:
+        with self._connection() as connection:
             return StoreTransaction(connection).list_items(kind)
-        finally:
-            connection.close()
 
     def create_item(self, kind: str, item_id: str, payload: Payload) -> Payload:
         with self.transaction() as tx:
@@ -350,22 +356,16 @@ class Store:
             return tx.reserve_idempotency(scope, key, request_hash, result_id)
 
     def get_idempotency(self, scope: str, key: str) -> Payload | None:
-        connection = self._connect()
-        try:
+        with self._connection() as connection:
             return StoreTransaction(connection).get_idempotency(scope, key)
-        finally:
-            connection.close()
 
     def append_audit(self, kind: str, item_id: str, event_type: str, payload: Payload) -> Payload:
         with self.transaction() as tx:
             return tx.append_audit(kind, item_id, event_type, payload)
 
     def list_audit(self, kind: str, item_id: str) -> list[Payload]:
-        connection = self._connect()
-        try:
+        with self._connection() as connection:
             return StoreTransaction(connection).list_audit(kind, item_id)
-        finally:
-            connection.close()
 
     def recover_running_jobs(self, kinds: tuple[str, ...] = ("jobs", "runs", "scenarios")) -> int:
         """Fail interrupted work on coordinator startup; never auto-rerun side effects."""

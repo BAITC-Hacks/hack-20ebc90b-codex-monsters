@@ -1,5 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from threading import Barrier, Event
 
 import pytest
 
@@ -189,3 +189,41 @@ def test_in_memory_store_keeps_connections_alive():
     with Store(":memory:") as store:
         store.create_item("snapshots", "s1", {"mode": "synthetic_demo"})
         assert store.get_item("snapshots", "s1")["mode"] == "synthetic_demo"
+
+
+@pytest.mark.parametrize("operation", ["read", "edit"])
+def test_in_memory_concurrency_waits_for_transaction_instead_of_sqlite_lock_error(operation):
+    with Store(":memory:") as store:
+        store.create_item("proposals", "p1", {"quantity": "108"})
+        writer_ready, contender_started, release_writer = Event(), Event(), Event()
+
+        def hold_write():
+            with store.transaction() as tx:
+                saved = tx.mutate_proposal("p1", 1, lambda value: {**value, "quantity": "120"})
+                writer_ready.set()
+                assert release_writer.wait(timeout=2)
+                return saved
+
+        def contend():
+            contender_started.set()
+            if operation == "read":
+                return store.get_item("proposals", "p1")
+            return store.mutate_proposal("p1", 1, lambda value: {**value, "quantity": "132"})
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            writer = pool.submit(hold_write)
+            try:
+                assert writer_ready.wait(timeout=2)
+                contender = pool.submit(contend)
+                assert contender_started.wait(timeout=2)
+                with pytest.raises(TimeoutError):
+                    contender.result(timeout=0.05)
+            finally:
+                release_writer.set()
+            saved = writer.result(timeout=2)
+            if operation == "read":
+                assert contender.result(timeout=2) == saved
+            else:
+                with pytest.raises(VersionConflictError):
+                    contender.result(timeout=2)
+            assert store.get_item("proposals", "p1")["quantity"] == "120"

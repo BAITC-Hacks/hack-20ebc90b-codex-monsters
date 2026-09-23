@@ -17,7 +17,7 @@ from .baseline import forecast_daily
 from .classification import classify_events
 from .recovery import recover_daily
 
-MODEL_VERSION = "robust-daily-v1.2"
+MODEL_VERSION = "robust-daily-v1.3"
 
 
 def _timestamp(value):
@@ -58,17 +58,21 @@ def _assumptions(snapshot, field):
     return found
 
 
-def _covered_window(snapshot, sku, warehouse, end):
-    windows = []
+def _covered_window(snapshot, sku, warehouse, end, warnings=None):
+    windows, buyer_windows = [], []
     for assumption, value in _assumptions(snapshot, "demand_coverage"):
-        skus = value.get("sku_ids") or assumption.get("scope_ids") or []
         warehouses = value.get("warehouse_ids") or []
-        if value.get("complete") is not True or (skus and sku not in skus) or (warehouses and warehouse not in warehouses):
+        outside_sku_scope = any(scope and sku not in scope for scope in (
+            value.get("sku_ids"), assumption.get("scope_ids"),
+        ))
+        if value.get("complete") is not True or outside_sku_scope or (warehouses and warehouse not in warehouses):
             continue
         if value.get("start") and value.get("end"):
             left, right = _coverage_day(value["start"], start=True), min(_coverage_day(value["end"], start=False), end)
             if right > left:
                 windows.append((left, right))
+                if assumption.get("provenance") == "override":
+                    buyer_windows.append((left, right, assumption.get("reason", "Buyer supplied coverage")))
     if not windows:
         return None
     # Only the most recent contiguous segment: do not fill unknown gaps as zero.
@@ -78,7 +82,18 @@ def _covered_window(snapshot, sku, warehouse, end):
             merged[-1] = (merged[-1][0], max(merged[-1][1], right))
         else:
             merged.append((left, right))
-    return merged[-1]
+    left, right = merged[-1]
+    if warnings is not None:
+        reasons = sorted({reason for start, stop, reason in buyer_windows
+                          if start < right and stop > left})
+        if reasons:
+            warnings.append(_issue(
+                "BUYER_DEMAND_COVERAGE_ASSUMPTION",
+                "Days without imported movements are treated as zero under the buyer's "
+                "coverage assumption, not verified ERP completeness. " + " ".join(reasons),
+                [sku],
+            ))
+    return left, right
 
 
 def _seasonality(snapshot, category, as_of, warnings, sku):
@@ -237,7 +252,7 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
         master = masters[sku]
         scoped_events = grouped[(sku, warehouse)]
         warnings = []
-        coverage = _covered_window(snapshot, sku, warehouse, end)
+        coverage = _covered_window(snapshot, sku, warehouse, end, warnings)
         scoped_intervals = [i for i in intervals if i["sku_id"] == sku and i["warehouse_id"] == warehouse]
         # An empty table alone does not establish complete stockout logging.
         logs_known = any(

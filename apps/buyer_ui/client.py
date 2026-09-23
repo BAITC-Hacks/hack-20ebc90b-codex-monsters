@@ -54,10 +54,13 @@ class ExportFile:
 
 class ApiClient(Protocol):
     def health(self) -> JsonObject: ...
+    def workspace(self) -> JsonObject: ...
     def list_sources(self) -> JsonObject: ...
     def create_snapshot(self, payload: JsonObject) -> JsonObject: ...
     def get_job(self, job_id: str) -> JsonObject: ...
     def get_snapshot(self, snapshot_id: str) -> JsonObject: ...
+    def get_buyer_inputs(self, snapshot_id: str) -> JsonObject: ...
+    def save_buyer_inputs(self, snapshot_id: str, payload: JsonObject) -> JsonObject: ...
     def create_planning_run(self, payload: JsonObject) -> JsonObject: ...
     def get_planning_run(self, run_id: str) -> JsonObject: ...
     def list_proposals(self, *, run_id: str | None = None, supplier_id: str | None = None,
@@ -70,6 +73,7 @@ class ApiClient(Protocol):
     def get_scenario(self, scenario_id: str) -> JsonObject: ...
     def list_demand_events(self, run_id: str, *, label: str | None = None,
                            cursor: str | None = None, limit: int = 50) -> JsonObject: ...
+    def review_events(self, run_id: str, payload: JsonObject) -> JsonObject: ...
 
 
 class _NoRedirects(request.HTTPRedirectHandler):
@@ -193,6 +197,9 @@ class HttpClient:
     def health(self) -> JsonObject:
         return self._call("GET", "/health")
 
+    def workspace(self) -> JsonObject:
+        return self._call("GET", "/workspace")
+
     def list_sources(self) -> JsonObject:
         return self._call("GET", "/sources")
 
@@ -204,6 +211,12 @@ class HttpClient:
 
     def get_snapshot(self, snapshot_id: str) -> JsonObject:
         return self._call("GET", "/snapshots/" + self._id(snapshot_id))
+
+    def get_buyer_inputs(self, snapshot_id: str) -> JsonObject:
+        return self._call("GET", "/snapshots/" + self._id(snapshot_id) + "/buyer-inputs")
+
+    def save_buyer_inputs(self, snapshot_id: str, payload: JsonObject) -> JsonObject:
+        return self._call("POST", "/snapshots/" + self._id(snapshot_id) + "/buyer-inputs", payload)
 
     def create_planning_run(self, payload: JsonObject) -> JsonObject:
         return self._call("POST", "/planning-runs", payload)
@@ -238,6 +251,9 @@ class HttpClient:
                            cursor: str | None = None, limit: int = 50) -> JsonObject:
         return self._call("GET", "/planning-runs/" + self._id(run_id) + "/demand-events",
                           query=dict(label=label, cursor=cursor, limit=limit))
+
+    def review_events(self, run_id: str, payload: JsonObject) -> JsonObject:
+        return self._call("POST", "/planning-runs/" + self._id(run_id) + "/review-events", payload)
 
 
 class MockClient:
@@ -317,8 +333,18 @@ class MockClient:
     def health(self) -> JsonObject:
         return {"status": "ok", "version": "ui-fixture-1.0", "demo_notice": self._fixture["notice"]}
 
+    def workspace(self) -> JsonObject:
+        return {"runs": [self.get_planning_run("demo-run")],
+                "snapshots": [self.get_snapshot("demo-snapshot")],
+                "latest_run_id": "demo-run", "latest_snapshot_id": "demo-snapshot",
+                "sources": self.list_sources()["items"]}
+
     def list_sources(self) -> JsonObject:
-        return deepcopy(self._fixture["sources"])
+        response = deepcopy(self._fixture["sources"])
+        for source in response.get("items", []):
+            source["default_as_of"] = self._fixture["snapshot"]["as_of"]
+            source["mapping_version"] = self._fixture["snapshot"]["mapping_version"]
+        return response
 
     def create_snapshot(self, payload: JsonObject) -> JsonObject:
         snapshot = self._fixture["snapshot"]

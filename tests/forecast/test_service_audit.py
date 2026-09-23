@@ -213,6 +213,44 @@ def test_one_unknown_scope_does_not_disable_covered_usable_subset(tmp_path):
     assert artifact["quality"]["capabilities"]["can_plan"]
 
 
+def test_buyer_coverage_enables_daily_planning_with_visible_scoped_assumption(tmp_path):
+    manifest, mapping = fixture_inputs(tmp_path, ("reviewed", "unreviewed"))
+    manifest["sources"][1]["coverage"]["complete"] = False
+    # Alternate days are absent from the source. The buyer explicitly accepts
+    # those gaps as zero only for the reviewed SKU; the original data stays real.
+    manifest["sources"][1]["rows"] = [
+        event for event in manifest["sources"][1]["rows"]
+        if int(event["event_id"].rsplit("-", 1)[1]) % 2 == 0
+    ]
+    mapping["assumptions"] = [{
+        "field": "demand_coverage", "provenance": "override",
+        "reason": "Buyer accepts days without recorded shipments as zero for this draft",
+        "scope_ids": ["reviewed"], "value": {
+            "start": "2026-01-01", "end": "2026-04-01", "complete": True,
+            # The assumption's narrower scope must win even if its coverage
+            # payload describes the whole imported dataset.
+            "sku_ids": ["reviewed", "unreviewed"], "warehouse_ids": ["W"],
+        },
+    }]
+    _, artifact = forecast(manifest, mapping)
+    series = {item["sku_id"]: item for item in artifact["series"]}
+    assert artifact["mode"] == "real_preview"
+    assert artifact["quality"]["status"] == "degraded"
+    assert artifact["quality"]["capabilities"]["can_plan"]
+    assert series["reviewed"]["daily"][0]["mean"] == 5
+    assert series["unreviewed"]["daily"][0]["mean"] == 10
+    reviewed_issues = series["reviewed"]["warnings"]
+    assert not any(issue["severity"] == "blocking" for issue in reviewed_issues)
+    assumption = next(issue for issue in reviewed_issues
+                      if issue["code"] == "BUYER_DEMAND_COVERAGE_ASSUMPTION")
+    assert assumption["severity"] == "warning"
+    assert "Buyer accepts days" in assumption["message"]
+    assert not any(issue["code"] == "BUYER_DEMAND_COVERAGE_ASSUMPTION"
+                   for issue in series["unreviewed"]["warnings"])
+    assert any(issue["code"] == "UNKNOWN_DEMAND_COVERAGE" and issue["severity"] == "blocking"
+               for issue in series["unreviewed"]["warnings"])
+
+
 def test_stockout_coverage_assumption_does_not_escape_its_scope(tmp_path):
     manifest, mapping = fixture_inputs(tmp_path, ("covered", "unlogged"))
     mapping["assumptions"] = [{

@@ -143,3 +143,28 @@ def test_named_preset_rejects_incomplete_registered_aliases(tmp_path):
         build_snapshot(source, MappingConfig(mapping_version="systeme-preview-v1", options={"output_root": str(tmp_path / "output")}))
     assert caught.value.code == "INVALID_PRESET_SOURCES"
     assert not (tmp_path / "output").exists()
+
+
+def test_named_preset_scope_option_imports_beyond_twenty_without_guessing_terms(tmp_path):
+    refs = registered_systeme_sources(tmp_path)
+    source = SourceManifest(source_ids=[ref["source_id"] for ref in refs], source_refs=refs, as_of=AS_OF)
+    result = build_snapshot(source, MappingConfig(mapping_version="systeme-preview-v1", options={
+        "output_root": str(tmp_path / "output"), "sku_limit": 1000,
+    }))
+    assert result.tables["sku_master"].row_count == 21
+    assert result.tables["sales_events"].row_count == 21
+    assert len({row["sku_id"] for row in load_table(result, "sku_master")}) == 21
+    assert result.mode == "real_preview"
+    assert all(row["moq_purchase"] is None for row in load_table(result, "supplier_terms"))
+    assert all(row["pack_multiple_purchase"] == 5 for row in load_table(result, "supplier_terms"))
+
+
+@pytest.mark.parametrize("sku_limit", [True, False, 0, -1, "20", 2.5])
+def test_named_preset_rejects_invalid_scope_limit(tmp_path, sku_limit):
+    refs = registered_systeme_sources(tmp_path)
+    source = SourceManifest(source_ids=[ref["source_id"] for ref in refs], source_refs=refs, as_of=AS_OF)
+    with pytest.raises(DomainError) as caught:
+        build_snapshot(source, MappingConfig(mapping_version="systeme-preview-v1", options={
+            "output_root": str(tmp_path / "output"), "sku_limit": sku_limit,
+        }))
+    assert caught.value.code == "INVALID_SCOPE"

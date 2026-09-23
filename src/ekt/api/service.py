@@ -71,7 +71,11 @@ class Service:
         self.executor.shutdown(wait=True, cancel_futures=False)
 
     def _sources(self):
-        sources = {"synthetic-demo": {"source_id": "synthetic-demo", "kind": "synthetic", "name": "Синтетические данные для проверки интеграции", "mode": "synthetic_demo"}}
+        sources = {"synthetic-demo": {"source_id": "synthetic-demo", "kind": "synthetic", "name": "Учебный набор · 16 товаров", "mode": "synthetic_demo", "dataset_id": "demo", "supplier_name": "IEK и Systeme Electric (учебный пример)", "mapping_version": "synthetic-v1", "default_as_of": "2026-09-23T00:00:00Z", "available_for_import": True, "description": "Полный путь закупщика на явно обозначенных синтетических данных."}}
+        source_root = os.environ.get("EKT_SOURCE_ROOT")
+        if source_root:
+            from .catalog import discover_sources
+            sources.update(discover_sources(Path(source_root).expanduser().resolve()))
         config = os.environ.get("EKT_SOURCE_CONFIG")
         if config:
             payload = json.loads(Path(config).read_text())
@@ -80,7 +84,29 @@ class Service:
         return sources
 
     def list_sources(self):
-        return {"items": [{k: v for k, v in value.items() if k not in {"path", "local_ref", "credentials"}} for value in self.sources.values()]}
+        from ekt.contracts import SourceMetadata
+        return {"items": [SourceMetadata.model_validate({k: v for k, v in value.items() if k in SourceMetadata.model_fields}).model_dump(mode="json") for value in self.sources.values()]}
+
+    def workspace(self):
+        """Resume persisted buyer work without requiring opaque IDs or raw paths."""
+        from ekt.contracts import PlanningRunStatus
+        runs = [value for value in self.store.list_items("jobs") if value.get("kind") == "run"]
+        runs.sort(key=lambda value: (value["created_at"], value["id"]), reverse=True)
+        snapshots = self.store.list_items("snapshots")
+        # Snapshot IDs/content are immutable; creation time of the import orders the recent list.
+        imports = sorted((value for value in self.store.list_items("jobs") if value.get("kind") == "snapshot" and value["status"] == "succeeded"), key=lambda value: value["created_at"], reverse=True)
+        imported_at = {}
+        for job in imports:
+            imported_at.setdefault(job["result_ref"], job["created_at"])
+        snapshots.sort(key=lambda value: imported_at.get(value["snapshot_id"], value["created_at"]), reverse=True)
+        completed = next((run for run in runs if run["status"] == "succeeded"), None)
+        return {
+            "runs": [{key: value for key, value in run.items() if key in PlanningRunStatus.model_fields} for run in runs[:50]],
+            "snapshots": [public_snapshot(value) for value in snapshots[:50]],
+            "sources": self.list_sources()["items"],
+            "latest_run_id": completed["id"] if completed else None,
+            "latest_snapshot_id": snapshots[0]["snapshot_id"] if snapshots else None,
+        }
 
     def _require(self, kind, id, version=None):
         result = self.store.get_item(kind, id, version=version)
@@ -119,10 +145,17 @@ class Service:
         ids = request["source_ids"]
         if not ids or any(id not in self.sources for id in ids):
             raise ServiceError("UNKNOWN_SOURCE", "Выберите зарегистрированный источник данных")
+        if len(ids) != len(set(ids)):
+            raise ServiceError("DUPLICATE_SOURCE", "Источник данных выбран повторно")
+        if any(self.sources[sid].get("available_for_import") is False for sid in ids):
+            raise ServiceError("SOURCE_PREVIEW_ONLY", "Этот файл доступен для проверки структуры; выберите подключённый набор для расчёта")
+        if any(self.sources[sid]["mode"] != request["mode"] for sid in ids):
+            raise ServiceError("MIXED_PROVENANCE", "Реальные и учебные данные должны обрабатываться отдельно")
         if "synthetic-demo" in ids and (ids != ["synthetic-demo"] or request["mode"] != "synthetic_demo"):
             raise ServiceError("MIXED_PROVENANCE", "Синтетические источники требуют отдельного демонстрационного снимка")
-        id, _ = self._new_job("snapshot", request)
-        self.executor.submit(self._guarded, id, lambda: self._build_snapshot(id, request))
+        id, created = self._new_job("snapshot", request, request.get("idempotency_key"))
+        if created:
+            self.executor.submit(self._guarded, id, lambda: self._build_snapshot(id, request))
         return {"job_id": id, "status_url": f"/v1/jobs/{id}"}
 
     def _build_snapshot(self, id, request):
@@ -147,9 +180,13 @@ class Service:
                     raise ServiceError("SOURCE_NOT_AVAILABLE", "Зарегистрированный файл недоступен", details={"source_id": sid})
                 refs.append({"source_id": sid, "kind": source["kind"], "local_ref": str(path.resolve()), "checksum": hashlib.sha256(path.read_bytes()).hexdigest()})
             manifest = SourceManifest.model_validate({"source_ids": request["source_ids"], "source_refs": refs, "mode": request["mode"], "as_of": request["as_of"]})
-            mapping = MappingConfig.model_validate({"mapping_version": request["mapping_version"], "options": {"output_root": str(self.root / "artifacts" / id)}})
+            mapping = MappingConfig.model_validate({"mapping_version": request["mapping_version"], "options": {"output_root": str(self.root / "artifacts" / id), "sku_limit": request.get("sku_limit", 20)}})
             snapshot = provider(manifest, mapping)
         snapshot = SnapshotManifest.model_validate(snapshot)
+        if snapshot.mode != request["mode"]:
+            raise ServiceError("SNAPSHOT_MODE_MISMATCH", "Источник вернул другой тип данных. Снимок не сохранён.")
+        if snapshot.mode == "real_preview" and snapshot.as_of != datetime.fromisoformat(request["as_of"]):
+            raise ServiceError("SNAPSHOT_DATE_MISMATCH", "Дата данных не совпадает с запрошенной. Снимок не сохранён.")
         # Demo generator owns its fixed time. It is explicitly replay data, not live stock.
         data = snapshot.model_dump(mode="json")
         with self.store.transaction() as tx:
@@ -161,14 +198,29 @@ class Service:
         self._update_job(id, status="succeeded", stage="complete", progress=1.0, result_ref=snapshot.snapshot_id, snapshot_id=snapshot.snapshot_id, mode=snapshot.mode, quality=data["quality"])
 
     def start_run(self, request):
-        self._require("snapshots", request["snapshot_id"])
+        snapshot_data = self._require("snapshots", request["snapshot_id"])
         PlanningPolicy.model_validate(request["policy"])
+        if request.get("review_overrides"):
+            self._ensure_role()
+            from ekt.contracts import load_table
+            snapshot = SnapshotManifest.model_validate(artifact_payload(snapshot_data))
+            events = {row["event_id"]: row for row in load_table(snapshot, "sales_events")}
+            ids = [event_id for item in request["review_overrides"] for event_id in item["event_ids"]]
+            if len(ids) != len(set(ids)):
+                raise ServiceError("DUPLICATE_REVIEW", "Одна продажа указана в нескольких решениях")
+            if not set(ids).issubset(events):
+                raise ServiceError("UNKNOWN_EVENT", "Продажа не найдена в выбранных данных")
+            if any(events[event_id].get("demand_effect") != "increase"
+                   or Decimal(str(events[event_id]["quantity_base"])) <= 0
+                   or datetime.fromisoformat(str(events[event_id]["event_at"]).replace("Z", "+00:00")) > snapshot.as_of
+                   for event_id in ids):
+                raise ServiceError("EVENT_NOT_REVIEWABLE", "Для проверки выберите положительные продажи до даты расчёта")
         id, created = self._new_job("run", request, request["idempotency_key"])
         if created:
             self.executor.submit(self._guarded, id, lambda: self._run(id, request))
         return {"run_id": id, "status_url": f"/v1/planning-runs/{id}"}
 
-    def _forecast(self, snapshot, run_id):
+    def _forecast(self, snapshot, run_id, review_overrides=None, policy=None):
         provider = self.forecast_provider
         if provider is None:
             try:
@@ -178,17 +230,25 @@ class Service:
                     raise
                 if snapshot.mode != "synthetic_demo":
                     raise ServiceError("FORECAST_PROVIDER_NOT_CONNECTED", "Модуль прогнозирования B не подключён") from None
+                if review_overrides:
+                    raise ServiceError("FORECAST_PROVIDER_NOT_CONNECTED", "Для пересчёта после проверки продаж нужен модуль прогнозирования") from None
                 from ekt.demo import fixture_forecast
                 # An explicitly labelled upstream fixture exercises real inventory/API logic.
                 return fixture_forecast(snapshot)
-        request = ForecastRequest(run_id=run_id, as_of=snapshot.as_of, sku_ids=[], warehouse_ids=[], horizon_days=90, seed=42, growth_overrides=[], review_overrides=[])
+        from ekt.contracts import load_table
+        terms = load_table(snapshot, "supplier_terms") if "supplier_terms" in snapshot.tables else []
+        policy = policy or {}
+        required = max((int(term.get("lead_time_days") or 0) + int(policy.get("review_days") or term.get("review_days") or 0) for term in terms), default=0)
+        # Include room for supported +14-day what-if without regenerating the forecast.
+        horizon = max(90, required + int(policy.get("lead_time_delay_days") or 0) + 14, int(policy.get("max_cover_days") or 0))
+        request = ForecastRequest(run_id=run_id, as_of=snapshot.as_of, sku_ids=[], warehouse_ids=[], horizon_days=horizon, seed=42, growth_overrides=[], review_overrides=review_overrides or [])
         return ForecastArtifact.model_validate(provider(snapshot, request))
 
     def _run(self, id, request):
         from ekt.planning import build_proposals
         snapshot = SnapshotManifest.model_validate(artifact_payload(self._require("snapshots", request["snapshot_id"])))
         self._update_job(id, stage="forecast", progress=0.2)
-        forecast = self._forecast(snapshot, id)
+        forecast = self._forecast(snapshot, id, request.get("review_overrides"), request["policy"])
         self._update_job(id, stage="planning", progress=0.65)
         policy = PlanningPolicy.model_validate(request["policy"])
         proposals = build_proposals(snapshot, forecast, policy, id)
@@ -198,9 +258,6 @@ class Service:
             data = proposal.model_dump(mode="json")
             data["version"] = 1
             data["capabilities"]["can_export"] = False
-            if data["mode"] == "real_preview":
-                data["capabilities"]["can_approve"] = False
-                data["capabilities"]["reasons"].append("Real orders require ERP freshness checks and verified buyer identity")
             data["content_hash"] = proposal_hash(data)
             values.append(data)
         # Completed forecast/proposals become visible together.
@@ -213,7 +270,7 @@ class Service:
             for data in values:
                 tx.create_item("proposals", data["proposal_id"], data)
             current = tx.get_item("jobs", id)
-            tx.mutate_item("jobs", id, current["version"], lambda value: {**value, "status": "succeeded", "stage": "complete", "progress": 1.0, "forecast_id": forecast.forecast_id, "proposal_ids": [data["proposal_id"] for data in values], "quality": snapshot.quality.model_dump(mode="json"), "model_version": forecast.model_version, "mode": snapshot.mode, "as_of": snapshot.as_of.isoformat(), "seed": forecast.seed, "policy": policy.model_dump(mode="json"), "snapshot_manifest_hash": snapshot.manifest_hash, "forecast_hash": digest(forecast_data), "result_ref": id, "updated_at": now()})
+            tx.mutate_item("jobs", id, current["version"], lambda value: {**value, "status": "succeeded", "stage": "complete", "progress": 1.0, "forecast_id": forecast.forecast_id, "proposal_ids": [data["proposal_id"] for data in values], "quality": snapshot.quality.model_dump(mode="json"), "model_version": forecast.model_version, "mode": snapshot.mode, "as_of": snapshot.as_of.isoformat(), "seed": forecast.seed, "policy": policy.model_dump(mode="json"), "review_overrides": request.get("review_overrides", []), "snapshot_manifest_hash": snapshot.manifest_hash, "forecast_hash": digest(forecast_data), "result_ref": id, "updated_at": now()})
 
     def list_proposals(self, run_id=None, supplier_id=None, limit=50, cursor=None):
         values = self.store.list_items("proposals")
@@ -242,6 +299,7 @@ class Service:
             raise ServiceError("FORBIDDEN", "Для действия требуется роль approver", 403)
 
     def edit(self, id, request):
+        self._ensure_role()
         from ekt.planning import revalidate_line_quantity
         edits = {edit["line_id"]: Decimal(edit["purchase_qty"]) for edit in request["edits"]}
         if len(edits) != len(request["edits"]):
@@ -274,6 +332,14 @@ class Service:
                     raise ServiceError("BUDGET_EXCEEDED", "Изменение превышает бюджет всего расчёта")
             data["status"] = "draft"
             data["capabilities"]["can_export"] = False
+            snapshot = self._require("snapshots", data["snapshot_id"])
+            data["capabilities"]["can_approve"] = (
+                snapshot["quality"]["capabilities"]["can_approve"]
+                and any(Decimal(line["selected_purchase_qty"]) > 0 for line in data["lines"])
+                and not any(w["severity"] == "blocking" for line in data["lines"] for w in line["warnings"])
+            )
+            if data["capabilities"]["can_approve"]:
+                data["capabilities"]["reasons"] = [reason for reason in data["capabilities"]["reasons"] if not reason.startswith("Нет товаров к заказу")]
             data["version"] = request["expected_version"] + 1
             data["content_hash"] = proposal_hash(data)
             ProposalDetail.model_validate(data)
@@ -282,13 +348,19 @@ class Service:
         return self.store.mutate_proposal(id, request["expected_version"], mutate, audit_event={"action": "edit", "actor": self.actor, "reason": request["reason"]})
 
     def _validate_approvable(self, data):
+        if not any(Decimal(line["selected_purchase_qty"]) > 0 for line in data["lines"]):
+            raise ServiceError("EMPTY_ORDER", "В заказе нет товаров с положительным количеством. Утверждение не требуется.")
         if not data["capabilities"]["can_approve"] or not data["lines"]:
             raise ServiceError("APPROVAL_BLOCKED", "Предложение нельзя утвердить", details={"reasons": data["capabilities"].get("reasons", [])})
         if any(issue["severity"] == "blocking" for issue in data.get("warnings", [])):
             raise ServiceError("DATA_BLOCKED", "Есть блокирующие замечания к данным")
         if data["mode"] == "real_preview":
-            # MVP has no live ERP freshness verification or enterprise identity.
-            raise ServiceError("REAL_EXPORT_NOT_ENABLED", "MVP поддерживает утверждённый демонстрационный CSV; для реального заказа нужна проверка ERP")
+            snapshot = self._require("snapshots", data["snapshot_id"])
+            if not snapshot["quality"]["capabilities"]["can_approve"] or not any(
+                assumption["field"] == "buyer_preparation" and assumption["provenance"] == "override"
+                for assumption in snapshot.get("assumptions", [])
+            ):
+                raise ServiceError("BUYER_PREPARATION_REQUIRED", "Заполните и подтвердите исходные данные закупки")
         from ekt.planning import revalidate_line_quantity
         from ekt.contracts import ProposalLine
         for line in data["lines"]:
@@ -300,16 +372,24 @@ class Service:
     def approve(self, id, request):
         self._ensure_role()
         approval_id = f"approval-{uuid4().hex}"
-
-        def mutate(data):
+        from ekt.storage import VersionConflictError
+        with self.store.transaction() as tx:
+            data = tx.get_item("proposals", id)
+            if data is None:
+                raise ServiceError("NOT_FOUND", "Предложение не найдено", 404)
+            if data["version"] != request["expected_version"]:
+                raise VersionConflictError(request["expected_version"], data["version"])
             if request["content_hash"] != data["content_hash"] or proposal_hash(data) != data["content_hash"]:
                 raise ServiceError("STALE_CONTENT", "Предложение изменилось, обновите экран", 409)
             self._validate_approvable(data)
+            if data["mode"] == "real_preview" and not request.get("acknowledge_assumptions"):
+                raise ServiceError("ASSUMPTIONS_ACKNOWLEDGEMENT_REQUIRED", "Подтвердите введённые условия и допущения перед утверждением")
+            reservation = tx.reserve_idempotency("approval", f"{id}:{data['version']}", data["content_hash"], approval_id)
+            if not reservation["created"]:
+                return {"approval_id": reservation["result_id"], "proposal_id": id, "version": data["version"], "status": "approved"}
             data["status"] = "approved"
             data["capabilities"]["can_export"] = True
-            return data
-
-        result = self.store.mutate_proposal(id, request["expected_version"], mutate, audit_event={"action": "approve", "approval_id": approval_id, "actor": self.actor, "content_hash": request["content_hash"]}, bump_version=False)
+            result = tx.mutate_proposal(id, request["expected_version"], lambda value: data, audit_event={"action": "approve", "approval_id": approval_id, "actor": self.actor, "content_hash": request["content_hash"], "acknowledge_assumptions": request.get("acknowledge_assumptions", False)}, bump_version=False)
         return {"approval_id": approval_id, "proposal_id": id, "version": result["version"], "status": "approved"}
 
     def export(self, id, request):
@@ -332,14 +412,21 @@ class Service:
                 return saved["csv"], saved["filename"]
             stream = io.StringIO(newline="")
             writer = csv.writer(stream)
-            writer.writerow(["ДЕМОНСТРАЦИЯ — НЕ ЗАКАЗ ПОСТАВЩИКУ"])
-            writer.writerow(["mode", "as_of", "supplier_id", "sku_id", "purchase_qty", "purchase_uom", "base_qty", "base_uom", "proposal_id", "version", "status", "explanation"])
+            demo = data["mode"] == "synthetic_demo"
+            writer.writerow(["ДЕМОНСТРАЦИЯ — НЕ ЗАКАЗ ПОСТАВЩИКУ" if demo else "ЛОКАЛЬНЫЙ ПЛАН ЗАКУПКИ — УСЛОВИЯ И ДОПУЩЕНИЯ ПОДТВЕРЖДЕНЫ ЗАКУПЩИКОМ; НЕ ОТПРАВЛЕН"])
+            writer.writerow(["mode", "as_of", "supplier_id", "sku_id", "purchase_qty", "purchase_uom", "base_qty", "base_uom", "proposal_id", "version", "status", "explanation", "name", "unit_cost", "line_cost", "currency", "assumptions"])
+            snapshot = self._require("snapshots", data["snapshot_id"])
             for line in data["lines"]:
-                cells = [data["mode"], data["as_of"], data["supplier_id"], line["sku_id"], line["selected_purchase_qty"], line["purchase_uom"], line["selected_base_qty"], line["base_uom"], id, str(data["version"]), "approved", json.dumps(line["explanation"], ensure_ascii=False)]
+                if Decimal(line["selected_purchase_qty"]) == 0:
+                    continue
+                explanation = "; ".join(f"{part['label']}: {part['delta_base_qty']} {line['base_uom']}" for part in line["explanation"] if Decimal(part["delta_base_qty"]) != 0)
+                assumptions = "; ".join(dict.fromkeys(a["reason"] for a in snapshot.get("assumptions", [])
+                    if not a.get("scope_ids") or line["sku_id"] in a["scope_ids"]))
+                cells = [data["mode"], data["as_of"], data["supplier_id"], line["sku_id"], line["selected_purchase_qty"], line["purchase_uom"], line["selected_base_qty"], line["base_uom"], id, str(data["version"]), "approved", explanation, line.get("name", ""), line.get("unit_cost") or "", line.get("line_cost") or "", data.get("currency") or "", assumptions]
                 # Spreadsheet programs must not interpret supplied identifiers as formulas.
                 writer.writerow(["'" + cell if str(cell).startswith(("=", "+", "-", "@", "\t", "\r")) else cell for cell in cells])
             text = stream.getvalue()
-            filename = f"demo-{id}-v{data['version']}.csv"
+            filename = f"{'demo' if demo else 'purchase'}-{id}-v{data['version']}.csv"
             tx.create_item("exports", export_id, {"csv": text, "filename": filename, "proposal_id": id, "proposal_version": data["version"], "actor": self.actor, "created_at": now()})
             tx.append_audit("proposals", id, "export", {"action": "export", "actor": self.actor, "export_id": export_id, "version": data["version"]})
             return text, filename
@@ -383,19 +470,46 @@ class Service:
         scenario_total = sum((p.total_cost for p in proposals), Decimal(0)) if complete else None
         self._update_job(id, status="succeeded", stage="complete", progress=1.0, base_run_id=base["id"], changed_lines=changed, summary={"baseline_total_cost": str(base_total) if base_total is not None else None, "scenario_total_cost": str(scenario_total) if scenario_total is not None else None, "delta_cost": str(scenario_total - base_total) if scenario_total is not None and base_total is not None else None, "currency": currency, "changed_line_count": sum(Decimal(line["delta_base_qty"]) != 0 for line in changed)}, assumptions=["Используется тот же прогноз и снимок. Уровень сервиса целевой, не измеренный.", f"Forecast provider: {forecast.model_version}; seed={forecast.seed} (seed сценария не перегенерирует прогноз); target CSL={policy.service_target}"], result_ref=id)
 
+    def review_events(self, id, request):
+        self._ensure_role()
+        base = self.job(id)
+        if base.get("kind") != "run" or base["status"] != "succeeded":
+            raise ServiceError("BASE_RUN_NOT_READY", "Для проверки продаж нужен готовый план")
+        rows = {row["event_id"]: row for row in self._event_rows(base)}
+        ids = set(request["event_ids"])
+        if not ids.issubset(rows):
+            raise ServiceError("UNKNOWN_EVENT", "Продажа не найдена в выбранном расчёте")
+        if any(Decimal(str(rows[event_id]["observed_qty"])) <= 0 or {"DEMAND_NONE", "DEMAND_DECREASE"}.intersection(rows[event_id].get("reason_codes", [])) for event_id in ids):
+            raise ServiceError("EVENT_NOT_REVIEWABLE", "Возвраты и движения без спроса нельзя подтвердить как продажу")
+        overrides = []
+        for old in base["request"].get("review_overrides", []):
+            remaining = [event_id for event_id in old["event_ids"] if event_id not in ids]
+            if remaining:
+                overrides.append({**old, "event_ids": remaining})
+        overrides.append({"event_ids": request["event_ids"], "label": request["label"], "reason": request["reason"].strip()})
+        payload = {"snapshot_id": base["request"]["snapshot_id"], "policy": base["request"]["policy"], "review_overrides": overrides, "idempotency_key": f"review:{id}:{request['idempotency_key']}"}
+        run_id, created = self._new_job("run", payload, payload["idempotency_key"])
+        if created:
+            self.store.append_audit("jobs", run_id, "classification_review", {"actor": self.actor, "base_run_id": id, "event_ids": request["event_ids"], "label": request["label"], "reason": request["reason"].strip()})
+            self.executor.submit(self._guarded, run_id, lambda: self._run(run_id, payload))
+        return {"run_id": run_id, "status_url": f"/v1/planning-runs/{run_id}"}
+
+    def _event_rows(self, run):
+        forecast = self._require("forecasts", run["forecast_id"])
+        path = forecast.get("classifications_ref")
+        if path and Path(path).is_file():
+            if str(path).endswith(".parquet"):
+                import pyarrow.parquet as pq
+                return pq.read_table(path).to_pylist()
+            return json.loads(Path(path).read_text())
+        return []
+
     def demand_events(self, id, label=None, limit=50, cursor=None):
         run = self.job(id)
         if run["status"] != "succeeded":
             raise ServiceError("RUN_NOT_READY", "Расчёт ещё не завершён")
         forecast = self._require("forecasts", run["forecast_id"])
-        path = forecast.get("classifications_ref")
-        rows = []
-        if path and Path(path).is_file():
-            if str(path).endswith(".parquet"):
-                import pyarrow.parquet as pq
-                rows = pq.read_table(path).to_pylist()
-            else:
-                rows = json.loads(Path(path).read_text())
+        rows = self._event_rows(run)
         rows = [row for row in rows if label is None or row.get("label") == label]
         try:
             start = int(cursor or 0)

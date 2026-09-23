@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -12,7 +13,7 @@ from uuid import uuid4
 import streamlit as st
 
 from .client import ApiError
-from .formatting import format_date, format_decimal, format_money, format_uom, show_api_error, show_error_details, show_issues, show_quality
+from .formatting import format_date, format_decimal, format_money, format_uom, human_reasons, show_api_error, show_error_details, show_issues, show_quality
 from .presentation import section_heading
 
 
@@ -46,6 +47,9 @@ def _select_run(run_id: str) -> None:
     if st.session_state.get("run_id") != run_id:
         st.session_state["run_id"] = run_id
         st.session_state["proposal_id"] = None
+        for key in list(st.session_state):
+            if key in {"order_drafts", "order_download", "orders_filter_context", "proposal_picker", "saved_run_picker"} or key.startswith(("qty:", "reason:", "reviewed:")):
+                del st.session_state[key]
         _clear_scenario()
 
 
@@ -244,7 +248,7 @@ def _render_scenario_workspace(client: Any) -> None:
         st.session_state["_secondary_scenario_context"] = context
     if not snapshot_id or not run_id:
         section_heading(1, "Сначала рассчитайте заказ", "Для сравнения нужен готовый заказ на выбранных данных.")
-        st.info("Откройте раздел «Данные», подготовьте данные и нажмите «Рассчитать заказ». Затем вернитесь сюда, чтобы проверить новые условия.")
+        st.info("Откройте раздел «Данные» и нажмите «Подготовить план закупки». Когда план будет готов, вернитесь сюда, чтобы проверить новые условия.")
         if st.button("Перейти к данным", key="secondary_scenario_to_data", type="primary"):
             st.session_state["pending_page"] = "Данные"
             st.rerun()
@@ -297,8 +301,8 @@ def _render_scenario_workspace(client: Any) -> None:
     policy = base_run.get("policy") or submitted_context.get("policy")
     _show_policy("Исходный расчёт", policy, currency)
     show_issues([issue for proposal in proposals for issue in proposal.get("warnings", [])])
-    reasons = dict.fromkeys(str(reason) for proposal in proposals
-                            for reason in proposal.get("capabilities", {}).get("reasons", []))
+    reasons = list(dict.fromkeys(reason for proposal in proposals for reason in human_reasons(
+        proposal.get("capabilities", {}).get("reasons"), proposal.get("warnings"))))
     if reasons:
         st.caption(" ".join(reasons))
     with st.form("secondary_scenario_form", border=False):
@@ -308,11 +312,13 @@ def _render_scenario_workspace(client: Any) -> None:
                                       help="Целевая вероятность пройти цикл поставки без дефицита. Это цель расчёта, а не гарантия.")
         delay = delivery.selectbox("Поставщик задержится на", [0, 7, 14],
                                    format_func=lambda v: "Без задержки" if v == 0 else f"{v} дней", key="secondary_delay")
-        budget_enabled = st.checkbox("Учитывать лимит", disabled=not currency, key="secondary_budget_enabled")
+        budget_enabled = st.checkbox("Изменить лимит закупки", disabled=not currency, key="secondary_budget_enabled")
         budget = st.text_input("Лимит закупки", disabled=not currency, key="secondary_budget",
                                help=f"Сумма в {currency}" if currency else "Нужны цены всех товаров в одной валюте.")
         if not currency:
             st.caption("Лимит недоступен: нужны цены всех товаров в одной валюте и поддержка сервера.")
+        elif isinstance(policy, dict) and policy.get("budget_cap") is not None:
+            st.caption("Если новый лимит не задан, сохранится лимит исходного плана: " + format_money(policy["budget_cap"], currency) + ".")
         submitted = st.form_submit_button("Сравнить варианты", type="primary")
     if submitted:
         st.session_state.pop("_secondary_scenario", None)
@@ -370,7 +376,25 @@ def _render_scenario_workspace(client: Any) -> None:
         for assumption in assumptions:
             st.caption(assumption)
     show_issues(scenario.get("warnings", []))
-    st.info("Чтобы использовать эти параметры в заказе, запустите новый расчёт в разделе «Данные» и утвердите результат.")
+    st.caption("Новый план сохранится отдельно. Исходные заказы и их утверждения останутся без изменений.")
+    if st.button("Применить условия к новому плану", key="apply_scenario_plan", type="primary"):
+        from .workspace import start_plan
+        new_policy = dict(policy or {})
+        new_policy.update(selected["request"]["overrides"])
+        if new_policy.get("budget_cap") is not None:
+            if not currency:
+                st.error("Не удалось подтвердить единую валюту бюджета. Обновите исходный план.")
+                return
+            new_policy["currency"] = currency
+        new_policy.setdefault("service_metric", "cycle_service")
+        new_policy.setdefault("policy_version", "mvp-v1")
+        try:
+            start_plan(client, snapshot_id, new_policy,
+                       review_overrides=base_run.get("review_overrides", submitted_context.get("review_overrides", [])))
+            st.session_state["pending_page"] = "Данные"
+            st.rerun()
+        except ApiError as error:
+            show_api_error(error)
 
 
 def _render_snapshot_job(client: Any) -> None:
@@ -537,7 +561,7 @@ def _render_planning(client: Any, snapshot: dict[str, Any]) -> None:
 
 
 def _render_projects(client: Any) -> None:
-    st.write("**Проектные и регулярные продажи · только чтение**")
+    st.write("**Проверьте разовые и регулярные продажи**")
     st.caption("Всплеск сохраняется в истории. Исторический проект не создаёт будущую закупку без подтверждённого обязательства. Номер документа не является идентификатором клиента.")
     run_id = st.session_state.get("run_id")
     if not run_id:
@@ -571,7 +595,22 @@ def _render_projects(client: Any) -> None:
     if not events:
         st.info("В выбранном расчёте нет событий с этой меткой.")
     else:
-        columns = ("event_id", "sku_id", "warehouse_id", "observed_qty", "regular_qty", "project_qty", "uncertain_qty", "label", "reason_codes", "reason", "confidence", "review_status", "event_at", "doc_id", "customer_token")
+        columns = ("sku_id", "warehouse_id", "observed_qty", "regular_qty", "project_qty", "uncertain_qty", "label", "reason_codes", "reason", "confidence", "review_status", "event_at", "doc_id", "customer_token")
+        reason_labels = {
+            "category_uom_fallback": "Сравнение с товарами категории в той же единице",
+            "short_history_low_confidence": "Короткая история — низкая уверенность",
+            "buyer_override": "Подтверждено закупщиком", "signed_demand_decrease": "Возврат или снижение спроса",
+            "document_lines_aggregated": "Учтены все строки одного документа",
+            "recurrent_large_demand_or_level_shift": "Повторяющиеся крупные закупки или рост базового спроса",
+            "limited_large_purchase_recurrence": "Недостаточно повторений крупной закупки",
+            "one_off_robust_size_outlier": "Разовый объём значительно выше обычного",
+            "zero_mad_ratio_fallback": "Сравнение с обычным объёмом при стабильной истории",
+            "document_quantity_concentrated": "Основной объём сосредоточен в одном документе",
+            "customer_quantity_concentrated": "Основной объём приходится на одного клиента",
+            "insufficient_size_reference": "Недостаточно покупок для сравнения",
+            "within_robust_regular_range": "Объём в обычном диапазоне", "no_demand_effect": "Не изменяет спрос",
+            "DEMAND_DECREASE": "Снижение спроса", "DEMAND_NONE": "Не изменяет спрос",
+        }
         rows = []
         for event in events:
             row = {key: event.get(key) for key in columns if any(key in item for item in events)}
@@ -579,12 +618,14 @@ def _render_projects(client: Any) -> None:
                 if key in row:
                     row[key] = format_decimal(row[key])
             if isinstance(row.get("reason_codes"), list):
-                row["reason_codes"] = ", ".join(map(str, row["reason_codes"]))
+                row["reason_codes"] = "; ".join(reason_labels.get(code, "Требуется проверка классификации") for code in row["reason_codes"])
+            if "review_status" in row:
+                row["review_status"] = {"pending": "Ожидает проверки", "confirmed": "Подтверждено", "not_required": "Не требуется"}.get(row["review_status"], "Не определено")
             rows.append(row)
         headings = {"event_id": "Событие", "sku_id": "Артикул", "warehouse_id": "Склад",
                     "observed_qty": "Продано", "regular_qty": "Регулярный спрос",
                     "project_qty": "Разовая продажа", "uncertain_qty": "Не определено",
-                    "label": "Тип продажи", "reason_codes": "Коды причин", "reason": "Пояснение",
+                    "label": "Тип продажи", "reason_codes": "Почему так определено", "reason": "Пояснение",
                     "confidence": "Уверенность модели", "review_status": "Проверка",
                     "event_at": "Дата", "doc_id": "Документ", "customer_token": "Обозначение клиента"}
         labels = {"regular": "Регулярная", "project": "Проектная", "suspected_project": "Возможно проектная", "uncertain": "Не определено"}
@@ -596,6 +637,7 @@ def _render_projects(client: Any) -> None:
         st.dataframe([{headings[key]: value for key, value in row.items()} for row in rows], hide_index=True, width="stretch")
         if not any(event.get("customer_token") for event in events):
             st.caption("Классификация по событиям/документам; клиентские идентификаторы в ответе отсутствуют.")
+        _render_event_review(client, run, events)
     next_cursor = response.get("next_cursor") if isinstance(response, dict) else None
     left, right = st.columns(2)
     if left.button("Предыдущая страница событий", disabled=len(cursors) <= 1, key="secondary_events_prev"):
@@ -606,12 +648,63 @@ def _render_projects(client: Any) -> None:
         st.rerun()
 
 
+def _render_event_review(client: Any, run: dict[str, Any], events: list[dict[str, Any]]) -> None:
+    pending = {}
+    for event in events:
+        if event.get("review_status") != "pending" or not event.get("event_id"):
+            continue
+        if set(event.get("reason_codes") or []) & {"DEMAND_DECREASE", "DEMAND_NONE", "signed_demand_decrease", "no_demand_effect"}:
+            continue
+        try:
+            quantity = Decimal(str(event.get("observed_qty")))
+            if not quantity.is_finite() or quantity <= 0:
+                continue
+        except (InvalidOperation, ValueError):
+            continue
+        pending[event["event_id"]] = event
+    if not pending or not hasattr(client, "review_events"):
+        return
+    st.write("**Подтвердите спорную продажу**")
+    st.caption("Решение пересчитает спрос в новом плане. Текущие заказы и утверждения сохранятся. Подтверждённая историческая проектная продажа сама по себе не создаёт будущий проектный заказ.")
+    with st.form("buyer_review_event", border=False):
+        positions = {event_id: index + 1 for index, event_id in enumerate(pending)}
+        event_id = st.selectbox("Продажа для проверки", list(pending), key="review_event_selection",
+            format_func=lambda value: f"{pending[value].get('sku_id', 'Товар')} · продано {format_decimal(pending[value].get('observed_qty'))} · событие {positions[value]}")
+        label = st.radio("Как учитывать спрос", ["regular", "project"], horizontal=True, key="review_event_label",
+                         format_func=lambda value: "Регулярная продажа" if value == "regular" else "Разовая проектная продажа")
+        reason = st.text_area("Обоснование решения", key="review_event_reason", placeholder="Например: подтверждена разовая поставка для строительного проекта.")
+        submit = st.form_submit_button("Подтвердить и пересчитать новый план", type="primary")
+    if not submit:
+        return
+    if not reason.strip():
+        st.error("Укажите обоснование, чтобы сохранить решение закупщика.")
+        return
+    payload = {"event_ids": [event_id], "label": label, "reason": reason.strip()}
+    payload["idempotency_key"] = _request_key("event_review:" + run["id"], payload)
+    try:
+        accepted = client.review_events(run["id"], payload)
+        if not accepted.get("run_id"):
+            raise ApiError(None, "INVALID_RESPONSE", "Сервер не подтвердил пересчёт. Повторите то же решение после проверки состояния.", ambiguous=True)
+        st.session_state["buyer_flow"] = {"stage": "run", "run_id": accepted["run_id"],
+                                         "snapshot_id": st.session_state.get("snapshot_id"), "policy": run.get("policy", {})}
+        st.session_state["pending_page"] = "Данные"
+        st.rerun()
+    except ApiError as error:
+        show_api_error(error)
+
+
 def render_data(client: Any) -> None:
     with st.container(key="data_workspace"):
         _render_data_workspace(client)
 
 
 def _render_data_workspace(client: Any) -> None:
+    if os.getenv("BUYER_DEVELOPER_MODE", "").lower() not in ("1", "true", "yes"):
+        from .workspace import render_buyer_data
+        render_buyer_data(client)
+        with st.expander("Разовые продажи"):
+            _render_projects(client)
+        return
     section_heading(1, "Подготовьте данные", "Для расчёта нужны история продаж, остатки и поставки. Выберите готовый набор или подготовьте его из подключённых источников.")
     snapshot_id = st.session_state.get("snapshot_id")
     snapshot = None
