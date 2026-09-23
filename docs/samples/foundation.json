@@ -1,0 +1,920 @@
+{
+  "note": "Синтетические контрактные примеры. Forecast содержит один SKU. fixture-v1 не является готовой ML-моделью.",
+  "snapshot": {
+    "schema_version": "1.0",
+    "snapshot_id": "demo-20260923-v1",
+    "mapping_version": "synthetic-v1",
+    "manifest_hash": "85c90ffc2dee32dd92727251a7514c2f1ddb8b21b5b3256e4a681422fb2c6749",
+    "mode": "synthetic_demo",
+    "as_of": "2026-09-23T00:00:00Z",
+    "created_at": "2026-09-23T00:00:00Z",
+    "source_refs": [
+      {
+        "source_id": "synthetic-generator-v1",
+        "checksum": "85c90ffc2dee32dd92727251a7514c2f1ddb8b21b5b3256e4a681422fb2c6749",
+        "kind": "synthetic",
+        "local_ref": null
+      }
+    ],
+    "tables": {
+      "sku_master": {
+        "uri": "artifact://demo-20260923-v1/sku_master",
+        "format": "parquet",
+        "row_count": 16,
+        "checksum": "b6cc86ccea847f9a0bc1f8cf5fef26b6ed504dbda0ccd9017fc086ce5fe5415e"
+      },
+      "sales_events": {
+        "uri": "artifact://demo-20260923-v1/sales_events",
+        "format": "parquet",
+        "row_count": 11625,
+        "checksum": "f019263fab333c04c591fdf2d5b142679c6a13ce08a81022b9eebd56690c9d3f"
+      },
+      "inventory_snapshots": {
+        "uri": "artifact://demo-20260923-v1/inventory_snapshots",
+        "format": "parquet",
+        "row_count": 16,
+        "checksum": "018a623b7bef71f86a94958550005bba791143cf0da8a69026610c76539c0b24"
+      },
+      "stockout_intervals": {
+        "uri": "artifact://demo-20260923-v1/stockout_intervals",
+        "format": "parquet",
+        "row_count": 2,
+        "checksum": "e4587b484651abe2478bdd6b4d149a2b48b4b25d279ff251b09daedcb9bfa9ef"
+      },
+      "pipeline_lines": {
+        "uri": "artifact://demo-20260923-v1/pipeline_lines",
+        "format": "parquet",
+        "row_count": 4,
+        "checksum": "28eb0ec589f01bf2e8ee08fcc02662cc1ebfe3cf82a1bd3459f12c2db98c174c"
+      },
+      "supplier_terms": {
+        "uri": "artifact://demo-20260923-v1/supplier_terms",
+        "format": "parquet",
+        "row_count": 16,
+        "checksum": "bf6070250a95cc0791d0a55597280c32003dd943de6c999f1bbb1a5f1949632a"
+      },
+      "planning_overrides": {
+        "uri": "artifact://demo-20260923-v1/planning_overrides",
+        "format": "parquet",
+        "row_count": 0,
+        "checksum": "e2cfa7fefe98b9f1920a8b9da2df2cc555eb737770c3c35e3b5b83579a33f0fc"
+      },
+      "monthly_sales": {
+        "uri": "artifact://demo-20260923-v1/monthly_sales",
+        "format": "parquet",
+        "row_count": 0,
+        "checksum": "e2cfa7fefe98b9f1920a8b9da2df2cc555eb737770c3c35e3b5b83579a33f0fc"
+      },
+      "monthly_balances": {
+        "uri": "artifact://demo-20260923-v1/monthly_balances",
+        "format": "parquet",
+        "row_count": 0,
+        "checksum": "e2cfa7fefe98b9f1920a8b9da2df2cc555eb737770c3c35e3b5b83579a33f0fc"
+      }
+    },
+    "quality": {
+      "status": "degraded",
+      "accepted_rows": 11679,
+      "rejected_rows": 0,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "SYNTHETIC_DEMO",
+          "severity": "warning",
+          "scope_ids": [],
+          "source_ref": null,
+          "message": "Все данные сгенерированы. Демонстрация — не заказ поставщику."
+        },
+        {
+          "code": "MISSING_SUPPLIER_TERMS",
+          "severity": "blocking",
+          "scope_ids": [
+            "DEMO-016"
+          ],
+          "source_ref": null,
+          "message": "Не указаны MOQ, кратность и срок поставки; товар исключается из заказа."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": true,
+        "budget_available": true,
+        "customer_detection_available": true,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Только демонстрационный CSV; внешняя отправка отсутствует.",
+          "Один SKU исключён из-за неизвестных условий."
+        ]
+      }
+    },
+    "assumptions": [
+      {
+        "field": "all_inputs",
+        "value": "synthetic",
+        "provenance": "synthetic",
+        "reason": "Фиксированный набор для демонстрации интеграции; не коммерческие данные.",
+        "scope_ids": []
+      },
+      {
+        "field": "calendar",
+        "value": "calendar_days",
+        "provenance": "synthetic",
+        "reason": "Сроки и интервал обзора измеряются в календарных днях.",
+        "scope_ids": []
+      }
+    ]
+  },
+  "planning_request": {
+    "snapshot_id": "demo-20260923-v1",
+    "policy": {
+      "service_metric": "cycle_service",
+      "service_target": 0.95,
+      "review_days": null,
+      "budget_cap": null,
+      "currency": null,
+      "max_cover_days": null,
+      "lead_time_delay_days": 0,
+      "policy_version": "mvp-v1"
+    },
+    "idempotency_key": "demo-plan-001"
+  },
+  "forecast": {
+    "schema_version": "1.0",
+    "forecast_id": "fixture-demo-20260923-v1",
+    "snapshot_id": "demo-20260923-v1",
+    "request_hash": "4fe5b8b05fa0c453e9d53042f326cfe8ec8f1c771ff44f1fb2133fdf0b340caf",
+    "model_version": "fixture-v1",
+    "seed": 42,
+    "as_of": "2026-09-23T00:00:00Z",
+    "mode": "synthetic_demo",
+    "series": [
+      {
+        "sku_id": "DEMO-001",
+        "warehouse_id": "ALA-DEMO",
+        "base_uom": "pcs",
+        "daily": [
+          {
+            "date": "2026-09-23",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-24",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-25",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-26",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-27",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-28",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-29",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-09-30",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-01",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-02",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-03",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-04",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-05",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-06",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-07",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-08",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-09",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-10",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-11",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-12",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-13",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-14",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-15",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-16",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-17",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-18",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-19",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-20",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-21",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-22",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-23",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-24",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-25",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-26",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-27",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-28",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-29",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-30",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-10-31",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-01",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-02",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-03",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-04",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-05",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-06",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-07",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-08",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-09",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-10",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-11",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-12",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-13",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-14",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-15",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-16",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-17",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-18",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-19",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-20",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-21",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-22",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-23",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-24",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-25",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-26",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-27",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-28",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-29",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-11-30",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-01",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-02",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-03",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-04",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-05",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-06",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-07",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-08",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-09",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-10",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-11",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-12",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-13",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-14",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-15",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-16",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-17",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-18",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-19",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-20",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          },
+          {
+            "date": "2026-12-21",
+            "baseline_mean": 6.0,
+            "seasonal_delta": 0.0,
+            "growth_delta": 0.0,
+            "mean": 6.0
+          }
+        ],
+        "uncertainty": {
+          "method": "iid_residual_normal",
+          "daily_residual_std": 2.0999999999999996,
+          "paths_ref": null,
+          "path_count": null,
+          "calibration": "unvalidated",
+          "assumption_note": "Synthetic scaffold: independent normal daily errors, assumed standard deviation 35% of median; no measured CSL."
+        },
+        "observed_regular_total": "474",
+        "estimated_lost_total": "0",
+        "project_total": "0",
+        "uncertain_total": "0",
+        "classification_policy": "regular_only",
+        "warnings": [
+          {
+            "code": "FORECAST_PROVIDER_NOT_CONNECTED",
+            "severity": "warning",
+            "scope_ids": [],
+            "source_ref": null,
+            "message": "Прогноз fixture-v1 — временное синтетическое приближение. Модель участника B, классификация проектов и восстановление спроса ещё не подключены."
+          }
+        ]
+      }
+    ],
+    "classifications_ref": "artifact://demo-20260923-v1/classifications",
+    "corrected_demand_ref": "artifact://demo-20260923-v1/corrected_demand",
+    "quality": {
+      "status": "degraded",
+      "accepted_rows": 11679,
+      "rejected_rows": 0,
+      "affected_skus": 1,
+      "issues": [
+        {
+          "code": "SYNTHETIC_DEMO",
+          "severity": "warning",
+          "scope_ids": [],
+          "source_ref": null,
+          "message": "Все данные сгенерированы. Демонстрация — не заказ поставщику."
+        },
+        {
+          "code": "MISSING_SUPPLIER_TERMS",
+          "severity": "blocking",
+          "scope_ids": [
+            "DEMO-016"
+          ],
+          "source_ref": null,
+          "message": "Не указаны MOQ, кратность и срок поставки; товар исключается из заказа."
+        },
+        {
+          "code": "FORECAST_PROVIDER_NOT_CONNECTED",
+          "severity": "warning",
+          "scope_ids": [],
+          "source_ref": null,
+          "message": "Прогноз fixture-v1 — временное синтетическое приближение. Модель участника B, классификация проектов и восстановление спроса ещё не подключены."
+        }
+      ],
+      "capabilities": {
+        "can_plan": true,
+        "can_approve": true,
+        "can_export": true,
+        "budget_available": true,
+        "customer_detection_available": true,
+        "observed_stockouts_available": false,
+        "reasons": [
+          "Только демонстрационный CSV; внешняя отправка отсутствует.",
+          "Один SKU исключён из-за неизвестных условий."
+        ]
+      }
+    },
+    "metrics": []
+  },
+  "proposal_line": {
+    "line_id": "demo-line-1",
+    "sku_id": "DEMO-006",
+    "name": "Кабель ВВГ 3×2.5",
+    "base_uom": "m",
+    "purchase_uom": "coil",
+    "recommended_base_qty": "200",
+    "recommended_purchase_qty": "2",
+    "selected_purchase_qty": "2",
+    "selected_base_qty": "200",
+    "moq_purchase": "2",
+    "pack_multiple_purchase": "1",
+    "conversion": "100",
+    "quantity_quantum": "1",
+    "rop": "150",
+    "safety_stock": "25",
+    "raw_need": "175",
+    "unit_cost": "450",
+    "line_cost": "90000",
+    "urgency": "soon",
+    "projected_stockout_date": null,
+    "explanation": [
+      {
+        "code": "baseline",
+        "label": "Спрос за защитный период",
+        "delta_base_qty": "250",
+        "source_refs": [],
+        "note": null
+      },
+      {
+        "code": "safety_stock",
+        "label": "Страховой запас",
+        "delta_base_qty": "25",
+        "source_refs": [],
+        "note": null
+      },
+      {
+        "code": "stock",
+        "label": "Доступный остаток",
+        "delta_base_qty": "-100",
+        "source_refs": [],
+        "note": null
+      },
+      {
+        "code": "pack",
+        "label": "Округление до бухты",
+        "delta_base_qty": "25",
+        "source_refs": [],
+        "note": null
+      }
+    ],
+    "warnings": []
+  },
+  "approval_request": {
+    "expected_version": 1,
+    "content_hash": "exact-content-hash-from-response"
+  },
+  "export_request": {
+    "expected_version": 1,
+    "idempotency_key": "demo-export-001"
+  }
+}
