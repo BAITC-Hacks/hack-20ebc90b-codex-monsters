@@ -21,21 +21,35 @@ def _single(directory, pattern):
     return matches[0]
 
 
-def systeme_preview_manifest(source_root, artifact_root, as_of, sku_limit=20):
+def systeme_preview_manifest(source_root, artifact_root, as_of, sku_limit=20, *, source_paths=None):
     """Return ``(SourceManifest payload, MappingConfig payload)`` for local files.
 
     ``source_root`` contains extracted ``IEK`` and ``Systeme electric`` directories.
     The scope is the most frequent 20 piece SKUs (ties use the textual SKU). No
     source paths or commercial rows are embedded in this module. Missing days are
     not declared zero: coverage.complete remains false until ERP confirmation.
+    ``source_paths`` optionally supplies exact registered paths keyed by S07,
+    S08, S12 and optional S01. In that mode no directory discovery is performed
+    and no unregistered optional workbook is read.
     """
     if not isinstance(sku_limit, int) or sku_limit < 1:
         raise DataError("INVALID_SCOPE", "sku_limit must be a positive integer")
-    root = Path(source_root).expanduser().resolve()
-    systeme = root / "Systeme electric"
-    sales_path = _single(systeme, "Динамика*")
-    multiple_path = _single(systeme, "MOQ*")
-    candidate_path = _single(systeme, "Товар в пути*")
+    optional_iek = None
+    if source_paths is not None:
+        if set(source_paths) - {"S07", "S08", "S12", "S01"} or {"S07", "S08", "S12"} - set(source_paths):
+            raise DataError("INVALID_PRESET_SOURCES", "Systeme preset requires registered S07, S08, S12 and optional S01 only")
+        paths = {key: Path(value).expanduser().resolve() for key, value in source_paths.items()}
+        sales_path, multiple_path, candidate_path = paths["S08"], paths["S07"], paths["S12"]
+        optional_iek = paths.get("S01")
+    else:
+        root = Path(source_root).expanduser().resolve()
+        systeme = root / "Systeme electric"
+        sales_path = _single(systeme, "Динамика*")
+        multiple_path = _single(systeme, "MOQ*")
+        candidate_path = _single(systeme, "Товар в пути*")
+        iek = root / "IEK"
+        if iek.is_dir():
+            optional_iek = _single(iek, "MOQ*")
     sales_source = {"source_id": "S08", "kind": "sales_events", "path": str(sales_path),
                     "sheet": "Лист_1", "header_row": 1, "provenance": "observed"}
     columns = {"event_at": "Дата", "doc_id": "Номер", "event_type": "Документ", "sku_id": "Код",
@@ -81,9 +95,8 @@ def systeme_preview_manifest(source_root, artifact_root, as_of, sku_limit=20):
     sources = [master, sales_source,
                {"source_id": "S07", "kind": "supplier_terms", "path": str(multiple_path), "sheet": "Лист_1", "provenance": "observed"},
                {"source_id": "S12", "kind": "inventory_snapshots", "path": str(candidate_path), "metadata_only": True, "provenance": "observed"}]
-    iek = root / "IEK"
-    if iek.is_dir():
-        sources.append({"source_id": "S01", "kind": "supplier_terms", "path": str(_single(iek, "MOQ*")), "metadata_only": True, "provenance": "observed"})
+    if optional_iek is not None:
+        sources.append({"source_id": "S01", "kind": "supplier_terms", "path": str(optional_iek), "metadata_only": True, "provenance": "observed"})
     mapping = {"version": "systeme-preview-v1", "authoritative_sales_sources": ["S08"], "sources": {
         "S08": {"columns": columns, "timezone": "Asia/Almaty", "date_formats": {"event_at": "%d.%m.%Y %H:%M:%S"}, "sku_filter": selected,
                 "movement_prefixes": {"Расходная накладная ": "shipment_document"},
@@ -91,7 +104,7 @@ def systeme_preview_manifest(source_root, artifact_root, as_of, sku_limit=20):
         "S07": {"columns": {"sku_id": "Номенклатура.Код", "pack_multiple_purchase": "Кратность"},
                 "sku_filter": selected, "constants": {"supplier_id": "systeme", "warehouse_id": "Алматы", "valid_at": as_of}},
     }, "assumptions": [
-        {"field": "supplier_registration", "value": "systeme:S07/S08/S12; iek:S01 metadata-only", "provenance": "observed", "reason": "Separate supplier/source identifiers; IEK full ingest unavailable", "scope_ids": ["systeme", "iek"]},
+        {"field": "supplier_registration", "value": "systeme:S07/S08/S12" + ("; iek:S01 metadata-only" if optional_iek is not None else ""), "provenance": "observed", "reason": "Separate supplier/source identifiers; IEK full ingest unavailable", "scope_ids": ["systeme", "iek"] if optional_iek is not None else ["systeme"]},
         {"field": "movement_interpretation", "value": "positive shipment-document preview only", "provenance": "derived", "reason": "Document-family interpretation; negative corrections and customer orders quarantined, ERP completeness not certified", "scope_ids": selected},
         {"field": "source_sign_profile", "value": str(dict(sorted(movement_counts.items()))), "provenance": "derived", "reason": "Aggregate source structure; no document IDs or customer identity inferred", "scope_ids": []},
         {"field": "current_stock", "value": "unverified", "provenance": "observed", "reason": "S12 stock/UOM/cost definitions need confirmation; no canonical current stock or inferred stockouts emitted", "scope_ids": selected},

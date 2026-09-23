@@ -1,7 +1,5 @@
 """B-only integration fixtures: independent of the A-owned common fixture factory."""
-from copy import deepcopy
 from datetime import date, timedelta
-from decimal import Decimal
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -10,6 +8,7 @@ import pytest
 from ekt.data import build_snapshot
 from ekt.data.boundary import as_payload
 from ekt.forecast import build_forecast
+from ekt.contracts import DomainError
 
 AS_OF = "2026-09-22T23:59:59+00:00"
 
@@ -49,8 +48,8 @@ def test_real_entry_points_publish_90_day_forecast_and_recover(tmp_path):
     assert result["mode"] == "synthetic_demo"
     series = result["series"][0]
     assert len(series["daily"]) == 90
-    assert series["daily"][0]["date"] == "2026-09-23"
-    assert series["daily"][-1]["date"] == "2026-12-21"
+    assert str(series["daily"][0]["date"]) == "2026-09-23"
+    assert str(series["daily"][-1]["date"]) == "2026-12-21"
     assert series["estimated_lost_total"] > 0
     assert series["uncertainty"]["method"] == "iid_residual_normal"
     assert series["uncertainty"]["calibration"] == "unvalidated"
@@ -95,6 +94,6 @@ def test_budget_service_fields_not_present_in_forecast_interface(tmp_path):
 def test_short_horizon_explicit_failure(tmp_path):
     manifest, mapping, request = fixture_inputs(tmp_path)
     request["horizon_days"] = 30
-    with pytest.raises(ValueError) as caught:
+    with pytest.raises(DomainError) as caught:
         build_forecast(build_snapshot(manifest, mapping), request)
     assert caught.value.code == "HORIZON_TOO_SHORT"

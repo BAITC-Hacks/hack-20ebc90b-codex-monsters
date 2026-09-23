@@ -84,7 +84,8 @@ class TemporalEvaluationTests(unittest.TestCase):
             self.assertEqual(origin["models"]["final_baseline"]["metrics"]["wape"], 0)
 
     def test_future_injection_changes_scores_but_not_origin_prediction(self):
-        forecast = lambda train, horizon: [train[-1]] * horizon
+        def forecast(train, horizon):
+            return [train[-1]] * horizon
         original = rolling_origin_evaluation([1, 2, 3, 4, 5], [3], 2, forecast, uom="piece")
         changed = rolling_origin_evaluation([1, 2, 3, 400, 500], [3], 2, forecast, uom="piece")
         for name in ("recent_mean", "final_baseline"):

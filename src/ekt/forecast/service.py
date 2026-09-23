@@ -17,7 +17,7 @@ from .baseline import forecast_daily
 from .classification import classify_events
 from .recovery import recover_daily
 
-MODEL_VERSION = "robust-daily-v1.0"
+MODEL_VERSION = "robust-daily-v1.1"
 
 
 def _timestamp(value):
@@ -130,6 +130,55 @@ def _publish_json(path, payload):
         Path(temp).unlink(missing_ok=True)
 
 
+def _shared_demo_coverage(snapshot, events, masters):
+    """Compatibility with A's explicitly synthetic, complete generator v1.
+
+    This narrow adapter does not certify coverage of arbitrary real exports.
+    The reviewed generator iterates every date from 2024-09-23 to its cutoff,
+    omits zero sales and enumerates all outages. Record those assumptions here
+    until A puts their equivalent on its shared fixture manifest.
+    """
+    if snapshot["mode"] != "synthetic_demo" or not any(
+        ref.get("source_id") == "synthetic-generator-v1"
+        and ref.get("local_ref") == "generated:ekt.demo.create_demo_snapshot"
+        for ref in snapshot.get("source_refs", [])
+    ) or _assumptions(snapshot, "demand_coverage"):
+        return snapshot
+    payload = dict(snapshot)
+    value = {"start": "2024-09-23", "end": _timestamp(snapshot["as_of"]).date().isoformat(),
+             "complete": True, "sku_ids": sorted(m["sku_id"] for m in masters),
+             "warehouse_ids": sorted({e["warehouse_id"] for e in events})}
+    payload["assumptions"] = [*snapshot.get("assumptions", []), *[
+        {"field": field, "value": canonical_json(value), "provenance": "synthetic",
+         "scope_ids": value["sku_ids"], "reason": "Complete date loop and enumerated outages of shared synthetic-generator-v1."}
+        for field in ("demand_coverage", "stockout_coverage")]]
+    return payload
+
+
+def _public_classifications(classified):
+    """Shared ClassificationRecord uses nonnegative quantities, with direction in reasons.
+
+    Full signed, source-linked records remain in signed_classifications.parquet
+    and are the only allocations used by recovery. Returns are never fed back
+    into demand as positive sales by this presentation projection.
+    """
+    fields = ("event_id", "sku_id", "warehouse_id", "observed_qty", "regular_qty", "project_qty",
+              "uncertain_qty", "label", "reason_codes", "confidence", "review_status")
+    result = []
+    for event in classified:
+        row = {field: event[field] for field in fields}
+        row["reason_codes"] = list(row["reason_codes"])
+        if event.get("demand_effect") == "decrease":
+            row["reason_codes"].append("DEMAND_DECREASE")
+            for field in ("observed_qty", "regular_qty", "project_qty", "uncertain_qty"):
+                row[field] = abs(row[field])
+        if row["label"] == "non_demand":
+            row["label"] = "regular"
+            row["reason_codes"].append("DEMAND_NONE")
+        result.append(row)
+    return result
+
+
 def build_forecast_payload(snapshot: dict, request: dict) -> dict:
     as_of = _timestamp(request["as_of"])
     if as_of > _timestamp(snapshot["as_of"]):
@@ -146,6 +195,7 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
         raise_domain("MISSING_TABLE", "Snapshot requires sales_events and sku_master")
     masters = read_table(tables["sku_master"])
     events = read_table(tables["sales_events"])
+    snapshot = _shared_demo_coverage(snapshot, events, masters)
     intervals = read_table(tables["stockout_intervals"]) if "stockout_intervals" in tables else []
     # UTC calendar days; omit unfinished origin day from learning, preserve its
     # events in the snapshot. Forecast begins on the day after the replay date.
@@ -223,14 +273,19 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
         if not model["daily"]:
             all_issues.append(_issue("NO_KNOWN_DEMAND_HISTORY", "All history values are unknown; no forecast was manufactured.", [sku], "blocking"))
             continue
+        corrected.extend(dict(row, sku_id=sku, warehouse_id=warehouse) for row in history)
+        if model["daily_residual_std"] is None:
+            all_issues.extend(warnings + [_issue("UNCERTAINTY_UNAVAILABLE", "Insufficient observed history for shared uncertainty contract; no fabricated sigma was supplied.", [sku], "blocking")])
+            continue
+        if any(summary[key] < 0 for key in ("observed_regular_total", "project_total", "uncertain_total")):
+            all_issues.extend(warnings + [_issue("NEGATIVE_NET_HISTORY", "Net-return history cannot be represented by nonnegative ForecastSeries totals; signed records are retained for review.", [sku], "blocking")])
+            continue
         if seasonal and seasonal.get("provenance") in {"synthetic", "override"}:
             mode = "synthetic_demo"
         if any(o.get("category_id") == master.get("category_id")
                and _day(o["valid_from"]) <= horizons[-1] and _day(o["valid_to"]) >= origin
                for o in request.get("growth_overrides") or []):
             mode = "synthetic_demo"
-        if model["daily_residual_std"] is None:
-            warnings.append(_issue("UNCERTAINTY_UNAVAILABLE", "Insufficient observed history for residual uncertainty; this series is preview only.", [sku], "blocking"))
         for code in model["warnings"]:
             warnings.append(_issue(code, code.replace("_", " ").lower(), [sku]))
         if summary.get("estimated_lost_total") is None:
@@ -240,8 +295,6 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
             values = [float(row[k]) for k in ("baseline_mean", "seasonal_delta", "growth_delta", "mean")]
             if not all(math.isfinite(v) for v in values) or values[-1] < 0 or abs(sum(values[:3])-values[-1]) > 1e-8:
                 raise_domain("INVALID_FORECAST", "Forecast decomposition is invalid", [sku])
-        for row in history:
-            corrected.append(dict(row, sku_id=sku, warehouse_id=warehouse))
         series.append({"sku_id": sku, "warehouse_id": warehouse, "base_uom": master["base_uom"],
                        "daily": model["daily"],
                        "uncertainty": {"method": "iid_residual_normal", "daily_residual_std": model["daily_residual_std"],
@@ -275,7 +328,8 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
     request_hash = digest_payload(content_request)
     forecast_id = "forecast-" + digest_payload({"snapshot_id": snapshot["snapshot_id"], "request_hash": request_hash, "model_version": MODEL_VERSION})[:24]
     artifact_dir = Path(tables["sales_events"]["uri"]).resolve().parent / "forecasts" / forecast_id
-    classes_ref = write_records(artifact_dir / "classifications.parquet", classified)
+    classes_ref = write_records(artifact_dir / "classifications.parquet", _public_classifications(classified))
+    signed_ref = write_records(artifact_dir / "signed_classifications.parquet", classified)
     corrected_ref = write_records(artifact_dir / "corrected_demand.parquet", corrected)
     artifact = {"schema_version": "1.0", "forecast_id": forecast_id, "snapshot_id": snapshot["snapshot_id"],
                 "request_hash": request_hash, "model_version": MODEL_VERSION, "seed": request.get("seed", 0),
@@ -283,7 +337,7 @@ def build_forecast_payload(snapshot: dict, request: dict) -> dict:
                 "classifications_ref": classes_ref["uri"], "corrected_demand_ref": corrected_ref["uri"],
                 "quality": quality, "metrics": []}
     # This backend-only sidecar adds artifact integrity; public contract unchanged.
-    _publish_json(artifact_dir / "artifact_refs.json", {"classifications": classes_ref, "corrected_demand": corrected_ref})
+    _publish_json(artifact_dir / "artifact_refs.json", {"classifications": classes_ref, "signed_classifications": signed_ref, "corrected_demand": corrected_ref})
     _publish_json(artifact_dir / "forecast.json", artifact)
     return artifact
 

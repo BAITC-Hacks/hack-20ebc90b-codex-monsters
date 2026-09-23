@@ -8,7 +8,8 @@ from .snapshot import build_snapshot_payload
 def build_snapshot(source_manifest, mapping_config):
     from . import boundary
     try:
-        payload = build_snapshot_payload(boundary.as_payload(source_manifest), boundary.as_payload(mapping_config))
+        source, mapping = boundary.snapshot_inputs(source_manifest, mapping_config)
+        payload = build_snapshot_payload(source, mapping)
         return boundary.export_contract("SnapshotManifest", payload)
     except DataError as error:
         boundary.raise_domain(error.code, str(error), affected_sku_ids=error.affected_sku_ids, retryable=error.retryable)

@@ -3,7 +3,7 @@ from math import isfinite
 
 import pytest
 
-from ekt.forecast.baseline import forecast_daily
+from ekt.forecast.baseline import forecast_daily, infer_seasonality
 
 
 ORIGIN = date(2026, 4, 1)
@@ -118,7 +118,70 @@ def test_partial_history_does_not_treat_missing_days_as_declining_sales():
     result = forecast_daily(data, horizon())
     assert result["metadata"]["learned_monthly_growth_rate"] == 0
     assert result["daily"][0]["mean"] == 10
+    assert "GAP_BETWEEN_HISTORY_AND_FORECAST" in result["warnings"]
+
+
+def test_sustained_growth_survives_explicit_unfinished_day_gap():
+    data = history([10] * 14 + [12] * 14 + [14] * 14)
+    later_horizon = [day + timedelta(days=1) for day in horizon()]
+    result = forecast_daily(data, later_horizon)
+    assert result["metadata"]["learned_monthly_growth_rate"] > 0
+    assert result["metadata"]["history_to_forecast_gap_days"] == 1
+    assert result["metadata"]["training_end_exclusive"] == ORIGIN.isoformat()
+
+
+def test_interior_unknown_dates_prevent_complete_window_growth_estimation():
+    data = history([10] * 14 + [12] * 14 + [14] * 14)
+    del data[-5]
+    result = forecast_daily(data, horizon())
+    assert result["metadata"]["learned_monthly_growth_rate"] == 0
     assert "GROWTH_INSUFFICIENT_COMPLETE_HISTORY_NEUTRAL" in result["warnings"]
+
+
+def annual_history():
+    first = date(2024, 4, 1)
+    days = (ORIGIN - first).days
+    return [{"date": (day := first + timedelta(days=index)).isoformat(),
+             "corrected_demand": 10 * (1 + day.month / 12)} for index in range(days)]
+
+
+def test_complete_repeated_annual_pattern_is_inferred_without_oracle():
+    data = annual_history()
+    result = forecast_daily(data, horizon())
+    assert "SEASONALITY_ESTIMATED_UNVALIDATED" in result["warnings"]
+    assert result["metadata"]["seasonality_provenance"] == "derived"
+    assert result["metadata"]["learned_monthly_growth_rate"] == 0
+    assert result["metadata"]["seasonality_evidence_end"] == "2026-03-31"
+    assert any(abs(row["seasonal_delta"]) > 0.1 for row in result["daily"])
+    for row in result["daily"]:
+        assert row["mean"] == pytest.approx(10 * (1 + date.fromisoformat(row["date"]).month / 12))
+
+
+def test_inferred_seasonality_normalizes_between_year_level_changes():
+    data = annual_history()
+    expected = infer_seasonality(data, ORIGIN)["factors"]
+    for row in data:
+        if row["date"] >= "2025-04-01":
+            row["corrected_demand"] *= 2
+    assert infer_seasonality(data, ORIGIN)["factors"] == pytest.approx(expected)
+
+
+def test_automatic_seasonality_excludes_future_and_partial_months():
+    data = annual_history()
+    expected = forecast_daily(data, horizon())
+    assert forecast_daily(data + [{"date": "2026-04-01", "corrected_demand": 1e12}], horizon()) == expected
+    data = [row for row in data if row["date"] != "2025-01-15"]
+    config = infer_seasonality(data, ORIGIN)
+    assert config is not None
+    assert 1 not in config["factors"]  # One complete January is insufficient.
+    assert len(config["factors"]) == 11
+    assert infer_seasonality(annual_history()[-365:], ORIGIN) is None
+
+
+def test_explicit_neutral_unverified_config_is_not_replaced_by_auto_estimate():
+    result = forecast_daily(annual_history(), horizon(), seasonality={"verified": False})
+    assert "SEASONALITY_ESTIMATED_UNVALIDATED" not in result["warnings"]
+    assert all(row["seasonal_delta"] == 0 for row in result["daily"])
 
 
 def test_signed_net_returns_are_clamped_only_at_forecast_boundary():

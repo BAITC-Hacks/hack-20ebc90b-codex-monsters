@@ -183,3 +183,166 @@ Signed movements не считай все продажами; не выдумы�
 Detector получает исходные признаки, не ground-truth labels. Сам выявляет one-off suspected_project; временное robust exclusion явно buyer-reviewed и не означает подтверждённый проект. Исторический project не создаёт нового обязательства. Recovery только по known interval; in-stock zero сохраняется. Forecast выдаёт daily baseline/seasonal/growth и scenario_paths или documented iid_residual_normal; A владеет SS/ROP/финальным заказом. Не реализуй API/UI/approval/export.
 Сдавай маленькие PR B1–B4, запускай meaningful tests своего изменения. Сообщай A готовые interfaces/artifact IDs, конкретные blockers, следующий checkpoint. После T+140 не начинай новые модели/зависимости; перед cutoff интегрируй с реальным backend. Не заявляй достигнутый CSL, бизнес-эффект или enterprise scale без измерения.
 ```
+
+## 10. Реализовано B: handoff для A и C (23 сентября 2026)
+
+Код B находится в `src/ekt/data/` и `src/ekt/forecast/`. Участник A
+опубликовал foundation в `d619ac2`; B интегрирован с его настоящими Pydantic
+контрактами и `uv.lock`. Новое правило `AGENTS.md` о публикации в `main`
+заменяет историческую схему веток/PR из разделов выше. При параллельной работе
+у каждого остаётся собственная физическая рабочая директория.
+
+**Исключение для исходников:** владелец этой задачи явно поручил добавить оба
+архива в приватный репозиторий для команды. `IEK.zip` и `Systeme electric.zip`
+закоммичены отдельно в `a744fc2` и уже доступны в `main`. Это разрешение относится
+к этим двум архивам; извлечённые Excel, Parquet, БД и локальные конфиги по-прежнему
+не нужно коммитить. В архивах 12 исходных workbook, их содержимое не изменялось.
+
+### Что подключать
+
+```python
+from ekt.data import build_snapshot
+from ekt.forecast import build_forecast
+from ekt.contracts import SourceManifest, MappingConfig, ForecastRequest
+
+# Оба результата — общие runtime models A, без параллельных схем B.
+snapshot = build_snapshot(source_manifest, mapping_config)
+forecast = build_forecast(snapshot, forecast_request)
+```
+
+`SourceManifest.output_root` задаёт локальный artifact root. Для универсального
+импорта `MappingConfig.columns` содержит `source_id -> canonical/header map`, а
+`MappingConfig.options` — `sources` с timezone/movement/UOM rules,
+`authoritative_sales_sources` и `assumptions`. Старые Python dict, используемые
+CLI B, тоже принимаются. Backend A автоматически импортирует B из этих модулей;
+отдельная настройка forecast provider для обычного запуска не нужна.
+
+Покрытие спроса хранится в `SnapshotManifest.assumptions`, поле `demand_coverage`:
+JSON value `{start,end,complete,sku_ids,warehouse_ids}`; интервал полуоткрытый.
+Только полные покрытые UTC-дни можно заполнять нулями. Частичные крайние дни и
+разрывы не становятся нулевым спросом. `stockout_coverage` с теми же scope/date
+полями подтверждает полноту журнала отсутствия; единичный реальный интервал
+сам по себе не доказывает наличие товара во все остальные дни.
+
+Для точного общего `synthetic-generator-v1` из `ekt.demo.create_demo_snapshot`
+B знает проверенный полный цикл дат и синтетические интервалы отсутствия и
+явно применяет эти синтетические допущения. На произвольные реальные файлы
+этот адаптер не распространяется. A может позднее перенести эти две записи
+coverage непосредственно в общую fixture factory.
+
+### Повторить на своей машине
+
+Из отдельного clone этого репозитория:
+
+```bash
+git pull --ff-only origin main
+uv sync --frozen
+uv run pytest tests/data tests/forecast -q
+uv run ruff check src/ekt/data src/ekt/forecast tests/data tests/forecast scripts/build_snapshot.py scripts/profile_sources.py
+
+mkdir -p ../ekt-local-data/sources
+unzip -q IEK.zip -d ../ekt-local-data/sources
+unzip -q 'Systeme electric.zip' -d ../ekt-local-data/sources
+uv run python scripts/build_snapshot.py \
+  --systeme-root ../ekt-local-data/sources \
+  --artifact-root ../ekt-local-data/artifacts \
+  --as-of 2026-09-22T23:59:59+05:00 --sku-limit 20
+```
+
+Последняя команда печатает JSON с `manifest_path`. Этот путь передать:
+
+```bash
+uv run python -m ekt.forecast --snapshot /path/from/manifest_path
+```
+
+Выход — безопасное summary с mode, counts, quality, forecast ID и путём к
+`forecast.json`. Детальные строки остаются в локальных Parquet. Read-only
+профилирование доступно через `scripts/profile_sources.py --systeme-root ...`
+с тем же явным `--as-of`; оно печатает агрегаты, а не коммерческие строки.
+
+Реальный прогон исходных архивов: **20 SKU, 35 912 принятых строк продаж,
+20 строк с кратностью, 9 quarantined**. Получено 20 рядов по 90 дней.
+Текущие остатки и stockout-интервалы не выдумываются. Это `real_preview`,
+`quality=degraded`, `can_plan=false`: отсутствие MOQ, подтверждённых UOM/current
+stock и полноты выгрузки остаётся видимым. S12 регистрируется как кандидат
+остатков, S01 IEK — отдельный metadata source; полный IEK ETL не заявляется.
+
+При неизвестном покрытии прогноз описывает **условный уровень в наблюдаемые
+дни продаж**. Пропущенные даты остаются null, такой ряд помечен
+`UNKNOWN_DEMAND_COVERAGE` и не допускается в расчёт заказа. Это диагностический
+preview, не оценка безусловного календарного спроса.
+
+### Числовые методы и ограничения
+
+- Классификация использует медиану/MAD, порог относительного размера,
+  повторяемость по разным датам, document/customer concentration при наличии
+  и category/UOM fallback. Разовая аномалия — `suspected_project`, review pending.
+  Truth labels не поступают в detector. Подтверждённый override применяется
+  отдельно. Исходные количества не теряются.
+- Recovery интегрирует максимальную unavailable fraction на пересечениях
+  `[start,end)`, а не складывает дубликаты. Donors — покрытые доступные дни,
+  при достаточном числе совпадающий день недели. Нет logs/donors — loss null;
+  без logs модель использует только observed demand. Поле итогового контракта
+  `estimated_lost_total=0` в таком случае означает «оценка не применялась»;
+  обязательный `RECOVERY_UNAVAILABLE` поясняет отличие от истинного нулевого loss.
+- Baseline — robust recent level; сезонные факторы либо явно подтверждены и
+  point-in-time, либо оцениваются только по завершённым месяцам train history
+  при достаточной повторяемости, иначе neutral. Выученная сезонность отмечена
+  unvalidated. Устойчивый тренд ограничен; неполный replay-день не обучает модель.
+- Growth override `rate` — единовременное относительное изменение на каждой
+  активной дате, не месячная/годовая ставка. `replace = 1 + rate`,
+  `incremental = learned_factor + rate`, с неотрицательным результатом.
+  Предположения о будущем сохраняют демонстрационный статус.
+- Uncertainty — `iid_residual_normal`, только наблюдаемые residuals вне известных
+  stockouts, calibration unvalidated. Нет sigma при короткой истории — SKU
+  исключается с причиной, а не получает фиктивную sigma=0. SS/ROP/бюджет считает A.
+- `run_id` не входит в content hash запроса модели. Сценарии A повторно используют
+  тот же прогноз; seed/as_of/snapshot/model IDs сохраняются. Изменение будущих
+  событий за replay origin не меняет forecast series на этом origin.
+
+`classifications_ref` соответствует строго `ClassificationRecord` A. У A
+количества этого DTO неотрицательны, поэтому возвраты показываются абсолютными
+allocations с reason code `DEMAND_DECREASE`, движения без спроса — `DEMAND_NONE`.
+Расчёт recovery использует **исходные signed allocations**, сохранённые отдельно
+в `signed_classifications.parquet`; публичная проекция обратно в спрос не идёт.
+`artifact_refs.json` содержит checksums обоих вариантов и corrected demand.
+У отрицательного net diagnostic, не представимого общим Qty, серия блокируется
+с `NEGATIVE_NET_HISTORY`, исходные signed данные сохраняются.
+
+`corrected_demand_ref` — подробный B audit с observed/lost/corrected, nullable
+unknown, availability/recovery status. Это не строгий `CorrectedDemand` A,
+который пока не умеет null и signed corrections. API A его напрямую не
+валидирует. Для будущего API такого аудита A понадобится согласовать nullable
+signed поля. Общие contracts B не менял.
+
+### Проверки и передача
+
+B-owned tests проверяют actual public models, leading-zero SKU, signed movement
+quarantine, header errors, source replay/checksums, unknown MOQ/UOM, blind spike
+versus recurrence/level shift, interval unions, zero controls, seasonal/growth
+decomposition, temporal leakage, scope exclusions и неизменяемые артефакты.
+`test_platform_integration.py` использует настоящую fixture A, provider B,
+planner A и HTTP workflow: run, demand-events, scenario reuse, approval и CSV
+для двух поставщиков. Для UI C источником остаётся API A.
+
+`ekt.forecast.evaluation` предоставляет WAPE/bias/MASE по одному UOM,
+training-only scale, temporal holdout/rolling origins и независимую latent/masked
+оценку recovery. Нулевые знаменатели — None. Выводы о реальной точности модели,
+достигнутом CSL или экономии по синтетическим тестам не делаются.
+
+Данные и прогноз не пишут SQLite, не отправляют заказы и не содержат UI-кода.
+После clone обычный backend A автоматически вызывает реализацию B.
+
+Для реального API snapshot зарегистрировать в локальном `EKT_SOURCE_CONFIG`
+три aliases: `S07` (`kind=supplier_terms`, файл MOQ Systeme), `S08`
+(`kind=sales_events`, файл динамики Systeme), `S12`
+(`kind=inventory_snapshots`, файл «Товар в пути» Systeme). У каждого локальный
+`path`; необязательный `S01` — IEK MOQ metadata. Запрос `POST /v1/snapshots`:
+
+```json
+{"source_ids":["S07","S08","S12"],"mapping_version":"systeme-preview-v1","mode":"real_preview","as_of":"2026-09-22T23:59:59+05:00"}
+```
+
+B применяет именно именованный preset, сверяет зарегистрированные пути и
+checksums. В этом режиме соседние незарегистрированные файлы не ищутся и не
+читаются. Поля preview остаются blocked/degraded по тем же правилам, что у CLI.

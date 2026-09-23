@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from openpyxl import Workbook
 
 from ekt.data.artifacts import read_table
